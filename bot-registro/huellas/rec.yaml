@@ -1,0 +1,142 @@
+# Huellas y pasos del Registro Electrónico Común (rec.redsara.es).
+#
+# ESTADO: PLANTILLA SIN VERIFICAR.
+# Los pasos siguen la guía pública del REC, pero las URL, etiquetas y selectores
+# marcados con TODO se fijan con las capturas del envío manual de referencia:
+#
+#   python src/main.py grabar          (genera capturas/ y huellas/borrador_<fecha>.yaml)
+#
+# Cuando todo esté completo: verificada: true, y después
+#   python src/main.py validar-huellas
+#   python src/main.py enviar --prueba --max 5
+#
+# Mientras verificada sea false, el bot no envía ni consulta nada en el REC.
+# Cualquier cambio en este archivo obliga a repetir el modo prueba.
+#
+# Selectores: sintaxis de Playwright (CSS "#id", "input[name=x]", "text=Siguiente",
+# "role=button[name='Firmar y enviar']"). Cada selector debe encontrar UN único elemento.
+#
+# Campos disponibles en los valores: {municipio} {asunto} {expone} {solicita}
+# {dir3_ayto} {dir3_destino} {razon_social} {cif} {direccion} {email} {telefono}
+# {tipo} {url_inicio}
+
+plataforma: REC
+verificada: false
+
+pantallas:
+  inicio:
+    url: "^https://rec\\.redsara\\.es/"
+    etiquetas: ["Registro Electrónico Común"]
+  clave:                                   # pasarela Cl@ve
+    url: "clave\\.gob\\.es|pasarela"       # TODO: confirmar con la captura
+    etiquetas: ["Cl@ve"]                   # TODO
+  modo_presentacion:                       # interesado o representante
+    url: "^https://rec\\.redsara\\.es/"    # TODO
+    etiquetas: ["TODO: texto de la pantalla de elección interesado/representante"]
+  formulario:
+    url: "^https://rec\\.redsara\\.es/"    # TODO
+    etiquetas: ["TODO: Asunto", "TODO: Expone", "TODO: Solicita"]
+  resumen:
+    url: "^https://rec\\.redsara\\.es/"    # TODO
+    etiquetas: ["TODO: texto que solo aparece en el resumen previo a la firma"]
+  justificante:
+    url: "^https://rec\\.redsara\\.es/"    # TODO
+    etiquetas: ["TODO: Número de registro", "TODO: Justificante"]
+
+# Hasta tener el formulario abierto.
+apertura:
+  - acciones:
+      - ir: "{url_inicio}"
+  - si_pantalla: inicio
+    acciones:
+      - clic: "TODO: botón para acceder al registro"
+  - si_pantalla: clave
+    acciones:
+      - clic: "TODO: opción Certificado electrónico / DNIe"
+  # La primera vez la persona elige el certificado en el diálogo de Windows.
+  - si_pantalla: clave
+    esperar_pantalla: modo_presentacion
+    timeout_seg: 300
+    mensaje: "Elige el certificado en la ventana de Windows (el bot espera)"
+  - si_pantalla: modo_presentacion
+    acciones:
+      # sociedad -> representante; autónomo -> interesado
+      - clic: "TODO: opción representante (o interesado)"
+  - pantalla: formulario
+
+# Datos del interesado, contenido, destinatario y adjuntos, hasta el resumen.
+rellenado:
+  - pantalla: formulario
+    acciones:
+      # Datos que no vienen del certificado:
+      - rellenar: {selector: "TODO: campo email", valor: "{email}"}
+      - rellenar: {selector: "TODO: campo teléfono", valor: "{telefono}"}
+      # Contenido:
+      - rellenar: {selector: "TODO: campo asunto", valor: "{asunto}"}
+      - rellenar: {selector: "TODO: campo expone", valor: "{expone}"}
+      - rellenar: {selector: "TODO: campo solicita", valor: "{solicita}"}
+      # Destinatario (sección 'destinatario' más abajo):
+      - elegir_destinatario: true
+      # Adjuntos:
+      - adjuntar: {selector: "TODO: input[type=file]", archivo: carta}
+      - adjuntar: {selector: "TODO: input[type=file]", archivo: dossier}
+      - clic: "TODO: botón Continuar / Siguiente"
+  - pantalla: resumen
+
+# Buscador de destinatarios: se busca por el código DIR3 del ayuntamiento y se
+# elige Fiestas/Festejos/Festes, si no Cultura, si no el ayuntamiento.
+destinatario:
+  pantalla: formulario
+  abrir:
+    - clic: "TODO: botón para abrir el buscador de organismos"
+  campo_busqueda: "TODO: campo de búsqueda por código"
+  boton_buscar: "TODO: botón Buscar"
+  filas_resultado: "TODO: filas de la tabla de resultados (p. ej. table#resultados tbody tr)"
+  # codigo_en_fila: "td:nth-child(1)"   # si no se indica, se busca un código DIR3 en el texto de la fila
+  # nombre_en_fila: "td:nth-child(2)"
+  # seleccionar_en_fila: "button"      # si no se indica, se pulsa la fila
+  despues: []                          # p. ej. pulsar "Aceptar" tras elegir
+  cerrar: []                           # para la detección: cerrar el buscador sin elegir
+
+# Lectura del resumen para la verificación previa a la firma.
+resumen:
+  pantalla: resumen
+  campos:
+    destinatario_codigo: "TODO: elemento con el código DIR3 del destinatario"
+    destinatario_nombre: "TODO: elemento con el nombre del destinatario"
+    asunto: "TODO: elemento con el asunto"
+  adjuntos: "TODO: un elemento por adjunto (nombre del archivo)"
+  cancelar: []                         # modo prueba: cómo abandonar el borrador (puede quedar vacío)
+
+firma:
+  acciones:
+    - clic: "TODO: botón Firmar y enviar"
+  aceptar_dialogos: false              # true si la web pide confirmar con un diálogo del navegador
+  mensaje: "Confirma la firma en Autofirma (la ventana de Autofirma no muestra el destinatario)"
+
+justificante:
+  pantalla: justificante
+  campos:
+    num_registro: "TODO: elemento con el número de registro"
+    fecha: "TODO: elemento con la fecha y hora de registro"
+  # regex_num_registro: "(REGAGE\\S+)"  # opcional, para extraer el número de un texto más largo
+  descargar: "TODO: enlace o botón de descarga del justificante PDF"
+
+# Fase 2: llevar el navegador hasta el buscador de destinatarios sin enviar nada.
+deteccion:
+  - acciones:
+      - ir: "{url_inicio}"
+  - si_pantalla: inicio
+    acciones:
+      - clic: "TODO: botón para acceder al registro"
+  - si_pantalla: clave
+    acciones:
+      - clic: "TODO: opción Certificado electrónico / DNIe"
+  - si_pantalla: clave
+    esperar_pantalla: modo_presentacion
+    timeout_seg: 300
+    mensaje: "Elige el certificado en la ventana de Windows (el bot espera)"
+  - si_pantalla: modo_presentacion
+    acciones:
+      - clic: "TODO: opción representante (o interesado)"
+  - pantalla: formulario

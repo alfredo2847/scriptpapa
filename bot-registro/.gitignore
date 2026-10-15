@@ -1,0 +1,20 @@
+# Datos personales y resultados: no se suben al repositorio
+perfil_chrome/
+datos/*.xlsx
+datos/*.json
+datos/copias/
+datos/dir3_bruto/*
+!datos/dir3_bruto/.gitkeep
+justificantes/*
+!justificantes/.gitkeep
+capturas/*
+!capturas/.gitkeep
+logs/*
+!logs/.gitkeep
+documentos/*.pdf
+documentos/personalizadas/
+huellas/borrador_*.yaml
+STOP
+__pycache__/
+.pytest_cache/
+.venv/

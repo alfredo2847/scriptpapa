@@ -1,0 +1,94 @@
+# Huellas del REC simulado de tests/mock_rec/sitio (solo para las pruebas automáticas).
+plataforma: REC
+verificada: true
+
+pantallas:
+  inicio:
+    url: "/index\\.html$"
+    titulo: "Registro Electrónico Común"
+    etiquetas: ["Acceder al registro"]
+  modo_presentacion:
+    url: "/modo\\.html$"
+    etiquetas: ["¿Cómo desea presentar?"]
+  formulario:
+    url: "/formulario\\.html$"
+    etiquetas: ["Nuevo registro", "Asunto", "Expone", "Solicita"]
+  resumen:
+    url: "/resumen\\.html$"
+    etiquetas: ["Resumen de la solicitud"]
+  justificante:
+    url: "/justificante\\.html$"
+    etiquetas: ["Justificante de registro", "Número de registro"]
+
+apertura:
+  - acciones:
+      - ir: "{url_inicio}"
+  - si_pantalla: inicio
+    acciones:
+      - clic: "#acceder"
+  - pantalla: modo_presentacion
+    acciones:
+      - clic: "#representante"
+  - pantalla: formulario
+
+rellenado:
+  - pantalla: formulario
+    acciones:
+      - rellenar: {selector: "#email", valor: "{email}"}
+      - rellenar: {selector: "#telefono", valor: "{telefono}"}
+      - rellenar: {selector: "#asunto", valor: "{asunto}"}
+      - rellenar: {selector: "#expone", valor: "{expone}"}
+      - rellenar: {selector: "#solicita", valor: "{solicita}"}
+      - elegir_destinatario: true
+      - adjuntar: {selector: "#adjunto1", archivo: carta}
+      - adjuntar: {selector: "#adjunto2", archivo: dossier}
+      - clic: "#continuar"
+  - pantalla: resumen
+
+destinatario:
+  pantalla: formulario
+  abrir:
+    - clic: "#abrir-buscador"
+  campo_busqueda: "#busqueda"
+  boton_buscar: "#buscar"
+  filas_resultado: "#resultados tbody tr"
+  espera_resultados_seg: 0.5
+  codigo_en_fila: "td.codigo"
+  nombre_en_fila: "td.nombre"
+  seleccionar_en_fila: "button.elegir"
+  cerrar:
+    - clic: "#cerrar-buscador"
+
+resumen:
+  pantalla: resumen
+  campos:
+    destinatario_codigo: "#dest-codigo"
+    destinatario_nombre: "#dest-nombre"
+    asunto: "#asunto"
+  adjuntos: "li.adjunto"
+  cancelar:
+    - clic: "#cancelar"
+
+firma:
+  acciones:
+    - clic: "#firmar"
+  aceptar_dialogos: false
+
+justificante:
+  pantalla: justificante
+  campos:
+    num_registro: "#numero"
+    fecha: "#fecha"
+  regex_num_registro: "(REGAGE\\w+)"
+  descargar: "#descargar"
+
+deteccion:
+  - acciones:
+      - ir: "{url_inicio}"
+  - si_pantalla: inicio
+    acciones:
+      - clic: "#acceder"
+  - pantalla: modo_presentacion
+    acciones:
+      - clic: "#representante"
+  - pantalla: formulario

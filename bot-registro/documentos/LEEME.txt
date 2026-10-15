@@ -1,0 +1,8 @@
+Coloca aquí los documentos definitivos:
+
+  carta.pdf    carta de presentación
+  dossier.pdf  dossier
+
+Solo PDF, con nombres sin tildes ni espacios y por debajo de 5 MB cada uno.
+Con carta_personalizada: true en config.yaml, la carta de cada municipio se
+genera en documentos/personalizadas/ desde plantilla_carta.txt.

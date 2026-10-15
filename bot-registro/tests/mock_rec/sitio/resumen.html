@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><title>REC - Resumen</title></head>
+<body><h1>Resumen de la solicitud</h1>
+<p>Destinatario: <span id="dest-codigo"></span> <span id="dest-nombre"></span></p>
+<p>Asunto: <span id="asunto"></span></p><ul id="adjuntos"></ul>
+<button id="firmar" onclick="firmar()">Firmar y enviar</button>
+<button id="cancelar" onclick="location='index.html'">Cancelar</button>
+<script>
+const e = JSON.parse(sessionStorage.getItem('envio'));
+// Daimús: la plataforma muestra un destinatario distinto del elegido (trampa para la verificación)
+const codigo = e.destino.ayto === 'L01460044' ? 'L01460011' : e.destino.codigo;
+document.getElementById('dest-codigo').textContent = codigo;
+document.getElementById('dest-nombre').textContent = e.destino.nombre;
+document.getElementById('asunto').textContent = e.asunto;
+e.adjuntos.forEach(a => { const li = document.createElement('li'); li.className = 'adjunto'; li.textContent = a + ' (12 KB)'; document.getElementById('adjuntos').appendChild(li); });
+function firmar() {
+  // Catadau: tras la firma aparece una pantalla inesperada
+  const destino = e.destino.ayto === 'L01460033' ? 'mantenimiento.html' : 'justificante.html';
+  setTimeout(() => location = destino, 1000);
+}
+</script></body></html>

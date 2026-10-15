@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><title>REC - Nuevo registro</title></head>
+<body><h1>Nuevo registro</h1>
+<label for="email">Correo electrónico</label><input id="email">
+<label for="telefono">Teléfono</label><input id="telefono">
+<label for="asunto">Asunto</label><input id="asunto">
+<label for="expone">Expone</label><textarea id="expone"></textarea>
+<label for="solicita">Solicita</label><textarea id="solicita"></textarea>
+<h2>Organismo destinatario</h2><p id="destino-elegido">Ninguno</p>
+<button id="abrir-buscador" onclick="document.getElementById('buscador').style.display='block'">Buscar organismo</button>
+<div id="buscador" style="display:none">
+  <input id="busqueda"><button id="buscar" onclick="buscar()">Buscar</button>
+  <table id="resultados"><tbody></tbody></table>
+  <button id="cerrar-buscador" onclick="document.getElementById('buscador').style.display='none'">Cerrar</button>
+</div>
+<label for="adjunto1">Documento 1</label><input type="file" id="adjunto1">
+<label for="adjunto2">Documento 2</label><input type="file" id="adjunto2">
+<button id="continuar" onclick="continuar()">Continuar</button>
+<script>
+const DATOS = {
+  L01460011: [["L01460011","Ayuntamiento de Albal"],["LA0000001","Concejalía de Fiestas"],["LA0000002","Concejalía de Cultura"]],
+  L01460022: [["L01460022","Ajuntament de Bétera"],["LA0000003","Regidoria de Cultura"]],
+  L01460033: [["L01460033","Ayuntamiento de Catadau"]],
+  L01460044: [["L01460044","Ayuntamiento de Daimús"]],
+};
+let destino = null;
+function buscar() {
+  const tbody = document.querySelector('#resultados tbody');
+  tbody.innerHTML = '';
+  const filas = DATOS[document.getElementById('busqueda').value.trim()] || [];
+  setTimeout(() => filas.forEach(([c, n]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="codigo">${c}</td><td class="nombre">${n}</td><td><button class="elegir">Seleccionar</button></td>`;
+    tr.querySelector('button').onclick = () => {
+      const raiz = filas[0][1];
+      destino = {codigo: c, nombre: c === filas[0][0] ? n : raiz + ' - ' + n, ayto: filas[0][0]};
+      document.getElementById('destino-elegido').textContent = destino.nombre;
+      document.getElementById('buscador').style.display = 'none';
+    };
+    tbody.appendChild(tr);
+  }), 300);
+}
+function continuar() {
+  const f = id => document.getElementById(id);
+  const adjuntos = [f('adjunto1'), f('adjunto2')].flatMap(i => [...i.files].map(x => x.name));
+  sessionStorage.setItem('envio', JSON.stringify({asunto: f('asunto').value, destino, adjuntos}));
+  location = 'resumen.html';
+}
+</script></body></html>

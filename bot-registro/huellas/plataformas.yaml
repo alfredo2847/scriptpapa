@@ -1,0 +1,28 @@
+# Huellas para reconocer la plataforma de una sede electrónica (fase 2).
+# Se comprueban en orden; gana la primera que coincide.
+#   dominios: expresiones regulares sobre el dominio final (tras redirecciones)
+#   html:     expresiones regulares sobre el HTML de la página
+#
+# Son un punto de partida: tras la primera detección, revisa en el log las sedes
+# que quedaron sin plataforma (MANUAL con url_sede) y añade aquí las huellas que
+# se repitan. El recuento por plataforma decide qué adaptadores se programan.
+
+plataformas:
+  gestiona:                     # esPublico Gestiona
+    dominios: ['\.sedelectronica\.es$']
+    html: ['espublico', 'gestiona\.espublico']
+  sedipualba:                   # Diputación de Albacete, muy usada en la Comunitat Valenciana
+    dominios: ['\.sedipualba\.es$']
+    html: ['sedipualba']
+  absis:                        # T-Systems / Absis
+    dominios: []
+    html: ['absis', 'portalciudadano/portal']
+  aytos:                        # Aytos (Grupo Aytos)
+    dominios: ['\.aytos\.es$']
+    html: ['aytos soluciones', 'grupo aytos', 'firmadoc']
+  eadmin:                       # Guadaltel / eAdmin
+    dominios: []
+    html: ['guadaltel', 'eadmin']
+  moad:                         # MOAD / Diputaciones
+    dominios: []
+    html: ['\bmoad\b']

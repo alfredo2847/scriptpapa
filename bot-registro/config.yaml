@@ -1,0 +1,71 @@
+# Configuración del bot de envío por registro a ayuntamientos.
+# Todo lo que cambia entre ejecuciones vive aquí, para no tocar código.
+# Los textos son un borrador: revísalos antes de la primera tanda.
+# El bot se niega a enviar mientras queden campos entre [corchetes].
+
+interesado:
+  tipo: sociedad            # sociedad o autonomo
+  razon_social: "[NOMBRE DE LA EMPRESA]"
+  cif: "[CIF]"
+  direccion: "[DIRECCIÓN]"
+  email: "[EMAIL]"
+  telefono: "[TELÉFONO]"
+
+textos:
+  asunto: "Propuesta de servicio de paellas para las fiestas de {municipio}"
+  expone: >
+    Que [NOMBRE DE LA EMPRESA] elabora paellas para eventos de 150 a 200
+    personas y trabaja habitualmente con ayuntamientos en sus fiestas
+    patronales y populares. Se adjunta carta de presentación y dossier.
+  solicita: >
+    Que se dé traslado de este escrito al Alcalde/sa y al Concejal/a de
+    Fiestas de {municipio} y se tenga en cuenta nuestra propuesta para la
+    programación de las próximas fiestas.
+
+documentos:
+  carta: documentos/carta.pdf
+  dossier: documentos/dossier.pdf
+  carta_personalizada: false   # true = una carta por municipio desde plantilla
+  plantilla_carta: documentos/plantilla_carta.txt
+  tamano_max_mb: 5             # límite propio; los del REC y cada sede se anotan tras la primera prueba
+
+ejecucion:
+  max_por_tanda: 5
+  espera_firma_seg: 300
+  pausa_entre_envios_seg: [20, 45]
+  confirmar_por_consola: true
+  max_errores_seguidos: 3      # con N errores seguidos se para la tanda
+  timeout_pantalla_seg: 20     # espera máxima a que una pantalla coincida con su huella
+  timeout_accion_seg: 15       # espera máxima a que aparezca un botón o campo
+
+inventario:
+  # URL de descarga del listado de unidades DIR3 de entidades locales (xlsx, csv o zip).
+  # Se localiza en la sede del Ministerio (administracionelectronica.gob.es, DIR3, Descargas)
+  # o en datos.gob.es. Si se deja vacía: python src/main.py inventario --archivo <ruta>
+  url_dir3: ""
+  total_esperado: 266
+  # Si el DIR3 cambia los nombres de columna, indícalos aquí (nombre exacto de la cabecera):
+  columnas: {}
+  #   codigo: "Código de la unidad"
+  #   nombre: "Denominación"
+  #   superior: "Código unidad superior"
+  #   raiz: "Código unidad raíz"
+  #   estado: "Estado"
+  #   web: "Web"
+  url_poblacion: ""            # opcional: pobmunXX.xlsx del INE
+  prioridad:                   # prioridad según habitantes (si se cruza con el INE)
+    umbral_1: 10000            # >= 10.000 habitantes -> prioridad 1
+    umbral_2: 3000             # >= 3.000 -> 2; el resto -> 3 (sin población -> 2)
+
+deteccion:
+  hilos: 6                     # webs consultadas en paralelo al buscar sedes
+  timeout_http_seg: 10
+  min_ayuntamientos_adaptador: 10
+
+rec:
+  url_inicio: "https://rec.redsara.es/"
+
+navegador:
+  canal: chrome                # Google Chrome instalado (lee el almacén de certificados de Windows)
+  headless: false
+  # perfil: perfil_chrome      # carpeta de perfil propia del bot

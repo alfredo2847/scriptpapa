@@ -1,0 +1,61 @@
+# Plantilla de adaptador de sede: copiar como huellas/sedes/<plataforma>.yaml
+# (mismo nombre que en plataformas.yaml) y completar con las capturas de un envío
+# manual en una sede de esa plataforma (python src/main.py grabar --url <sede>).
+#
+# Solo se programa un adaptador si la plataforma cubre 10 o más ayuntamientos.
+# La apertura solo puede llevar al trámite "Instancia general" o "Solicitud genérica".
+# Campos extra disponibles: {url_sede}
+
+plataforma: nombre_plataforma
+verificada: false
+
+pantallas:
+  portada:
+    url: "TODO"
+    etiquetas: ["TODO"]
+  instancia_general:
+    etiquetas: ["Instancia general", "TODO"]
+  resumen:
+    etiquetas: ["TODO"]
+  justificante:
+    etiquetas: ["TODO"]
+
+apertura:
+  - acciones:
+      - ir: "{url_sede}"
+  - pantalla: portada
+    acciones:
+      - clic: "TODO: enlace Instancia general"
+  - pantalla: instancia_general
+
+rellenado:
+  - pantalla: instancia_general
+    acciones:
+      - rellenar: {selector: "TODO", valor: "{asunto}"}
+      - rellenar: {selector: "TODO", valor: "{expone}"}
+      - rellenar: {selector: "TODO", valor: "{solicita}"}
+      - adjuntar: {selector: "TODO", archivo: carta}
+      - adjuntar: {selector: "TODO", archivo: dossier}
+      - clic: "TODO: continuar"
+  - pantalla: resumen
+
+resumen:
+  pantalla: resumen
+  campos:
+    cabecera: "TODO: cabecera con el nombre del ayuntamiento"
+    destinatario_nombre: "TODO: nombre del ayuntamiento en el resumen"
+    asunto: "TODO"
+  adjuntos: "TODO"
+  cancelar: []
+
+firma:
+  acciones:
+    - clic: "TODO: Firmar y enviar"
+  aceptar_dialogos: false
+
+justificante:
+  pantalla: justificante
+  campos:
+    num_registro: "TODO"
+    fecha: "TODO"
+  descargar: "TODO"

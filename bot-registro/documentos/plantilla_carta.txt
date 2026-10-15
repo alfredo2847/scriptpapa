@@ -1,0 +1,15 @@
+{razon_social}
+CIF: {cif}
+{direccion}
+{email} · {telefono}
+
+A la atención del Alcalde/sa y del Concejal/a de Fiestas
+Ayuntamiento de {municipio}
+
+{fecha}
+
+[TEXTO DE LA CARTA: revisar antes de usar carta_personalizada: true]
+
+Atentamente,
+
+{razon_social}
