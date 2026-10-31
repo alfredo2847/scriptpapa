@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Dossier Abundi Monterde – Filencia S.L.</title>
+<style>
+  @page { size: 297mm 210mm; margin: 0; }
+  :root {
+    --hierro: #201c19;      /* paellera */
+    --azafran: #f6c454;     /* amarillo del logo */
+    --asa: #c23a2b;         /* asas rojas */
+    --blanco: #ffffff;      /* paredes encaladas */
+    --gris: #5d554d;
+    --humo: #efedea;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--blanco); }
+  body {
+    font-family: "Inter", "Liberation Sans", sans-serif;
+    color: var(--hierro);
+    font-size: 11.5pt;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .pagina {
+    width: 297mm; height: 210mm;
+    position: relative; overflow: hidden;
+    page-break-after: always; break-after: page;
+  }
+  .pagina:last-child { page-break-after: auto; break-after: auto; }
+
+  h1, h2 {
+    font-family: "Inter Display", "Inter", sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 0.98;
+  }
+  h1 { font-size: 46pt; }
+  h2 { font-size: 30pt; margin-bottom: 7mm; }
+  p + p { margin-top: 3.5mm; }
+  .marca {
+    font-family: "Inter Display", "Inter", sans-serif;
+    font-weight: 800; font-size: 13pt; letter-spacing: -0.01em;
+  }
+  .suave { color: var(--gris); }
+  .foto { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Paellera: círculo con dos asas rojas */
+  .paellera { position: absolute; border-radius: 50%; border: 3.2mm solid var(--hierro); }
+  .paellera::before, .paellera::after {
+    content: ""; position: absolute; top: 50%;
+    width: 9%; height: 4.5%; min-height: 2.2mm;
+    background: var(--asa); border-radius: 2mm;
+    transform: translateY(-50%);
+  }
+  .paellera::before { left: -11%; }
+  .paellera::after  { right: -11%; }
+
+  /* 1. Portada */
+  .portada .texto { position: absolute; left: 18mm; top: 18mm; bottom: 16mm; width: 112mm;
+    display: flex; flex-direction: column; }
+  .portada h1 { margin-top: 30mm; }
+  .portada .lema { margin-top: 8mm; font-size: 15pt; line-height: 1.4; max-width: 105mm; }
+  .portada .pie { margin-top: auto; font-size: 10pt; line-height: 1.55; }
+  .portada .paellera { width: 196mm; height: 196mm; right: -52mm; top: 7mm; overflow: visible; }
+  .portada .paellera .foto { border-radius: 50%; }
+
+  /* Página con foto a media página */
+  .partida { display: grid; grid-template-columns: 1fr 1fr; }
+  .partida .contenido { padding: 20mm 18mm 18mm 16mm; display: flex; flex-direction: column; }
+  .partida .contenido.izq { padding: 20mm 16mm 18mm 18mm; }
+  .datos { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm;
+    border-top: 1.2mm solid var(--azafran); padding-top: 5mm; }
+  .datos b { display: block; font-family: "Inter Display", "Inter", sans-serif; font-weight: 900;
+    font-size: 19pt; line-height: 1.1; }
+  .datos span { font-size: 9.5pt; color: var(--gris); line-height: 1.35; display: block; margin-top: 1mm; }
+
+  /* 3. Tamaños */
+  .tamanos { padding: 18mm; }
+  .escala { position: relative; height: 150mm; margin-top: 0; }
+  .escala .paellera { background: var(--azafran); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; bottom: 36mm; }
+  .escala .cifra { font-family: "Inter Display", "Inter", sans-serif; font-weight: 900;
+    letter-spacing: -0.02em; line-height: 1; }
+  .escala .p1 { width: 44mm; height: 44mm; left: 14mm; }
+  .escala .p1 .cifra { font-size: 15pt; }
+  .escala .p2 { width: 72mm; height: 72mm; left: 80mm; }
+  .escala .p2 .cifra { font-size: 26pt; }
+  .escala .p3 { width: 104mm; height: 104mm; left: 168mm; }
+  .escala .p3 .cifra { font-size: 38pt; }
+  .escala .unidad { font-size: 9.5pt; font-weight: 600; margin-top: 1mm; }
+  .escala .ley { position: absolute; bottom: 0; height: 30mm; font-size: 10.5pt; line-height: 1.4;
+    color: var(--gris); text-align: center; }
+  .escala .l1 { left: 4mm; width: 64mm; }
+  .escala .l2 { left: 76mm; width: 80mm; }
+  .escala .l3 { left: 175mm; width: 90mm; }
+
+  /* 4. Experiencia */
+  .lista { list-style: none; }
+  .lista li { padding: 2.4mm 0; border-bottom: 0.3mm solid #d9d5d0; font-size: 10.5pt; line-height: 1.4; }
+  .lista li:first-child { padding-top: 0; }
+  .lista b { font-weight: 700; }
+  .dana { margin-top: 6mm; background: var(--hierro); color: var(--blanco); padding: 5mm 6mm;
+    border-left: 2.5mm solid var(--azafran); font-size: 10.5pt; line-height: 1.45; }
+  .dana b { color: var(--azafran); }
+  .miniatura { margin-top: 5mm; height: 46mm; }
+
+  /* 5. Calidad */
+  .calidad .foto { position: absolute; inset: 0; }
+  .calidad .panel { position: absolute; left: 0; bottom: 0; width: 150mm;
+    background: var(--blanco); padding: 13mm 16mm 14mm 18mm; }
+  .calidad .panel h2 { margin-bottom: 5mm; }
+  .calidad .tiras { position: absolute; right: 14mm; top: 14mm; width: 66mm; height: 82mm;
+    border: 2.5mm solid var(--blanco); }
+
+  /* 6. Presupuesto */
+  .precio { background: var(--azafran); padding: 6mm 7mm; margin: 2mm 0 6mm; }
+  .precio .cifra { font-family: "Inter Display", "Inter", sans-serif; font-weight: 900;
+    font-size: 30pt; line-height: 1; letter-spacing: -0.02em; }
+  .precio p { margin-top: 2mm; font-size: 10.5pt; }
+  .garantias { list-style: none; font-size: 10.5pt; }
+  .garantias li { padding-left: 6mm; position: relative; margin-bottom: 1.8mm; }
+  .garantias li::before { content: ""; position: absolute; left: 0; top: 1.6mm;
+    width: 2.6mm; height: 2.6mm; border-radius: 50%; background: var(--asa); }
+  .contacto { margin-top: auto; border-top: 1.2mm solid var(--hierro); padding-top: 5mm;
+    font-size: 10.5pt; line-height: 1.55; }
+  .contacto .nombre { font-weight: 800; font-size: 13pt; }
+</style>
+</head>
+<body>
+
+<!-- 1. Portada -->
+<section class="pagina portada">
+  <div class="texto">
+    <div class="marca">Abundi Monterde</div>
+    <h1>Paellas gigantes para las fiestas de su pueblo</h1>
+    <p class="lema">De 100 a 10.000 raciones, cocinadas en la plaza, delante de los vecinos.</p>
+    <div class="pie">
+      <strong>Filencia S.L.</strong>, delegación de Abundi Monterde en la Comunitat Valenciana<br>
+      <span class="suave">630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com &nbsp;&nbsp; abundimonterde.es</span>
+    </div>
+  </div>
+  <div class="paellera"><img class="foto" src="fotos/valenciana_arriba.jpg" alt="Paella valenciana vista desde arriba"></div>
+</section>
+
+<!-- 2. Quiénes somos -->
+<section class="pagina partida">
+  <img class="foto" src="fotos/pasion_paella.jpg" alt="Cocinero de Abundi Monterde removiendo una paella gigante">
+  <div class="contenido">
+    <h2>Treinta años de pasión por la paella</h2>
+    <p>Abundi Monterde lleva tres décadas cocinando paellas gigantes en fiestas patronales, comidas populares y grandes eventos.</p>
+    <p>Cocinamos en el lugar de la fiesta, a la vista de todos, y con el mismo cuidado para cien personas que para diez mil. Usamos ingredientes frescos, en la cantidad que pide una buena paella.</p>
+    <p>Filencia S.L., con sede en València, es nuestra delegación en la Comunitat Valenciana. Se encarga de atender a los ayuntamientos, preparar los presupuestos y facturar.</p>
+    <div class="datos">
+      <div><b>30 años</b><span>cocinando paellas para fiestas</span></div>
+      <div><b>10.000</b><span>comensales como máximo en un evento</span></div>
+      <div><b>València</b><span>contratación y facturación</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Tamaños -->
+<section class="pagina tamanos">
+  <h2>Una paella a la medida de cada fiesta</h2>
+  <div class="escala">
+    <div class="paellera p1"><span class="cifra">100</span><span class="unidad">raciones</span></div>
+    <div class="paellera p2"><span class="cifra">1.500</span><span class="unidad">raciones</span></div>
+    <div class="paellera p3"><span class="cifra">10.000</span><span class="unidad">raciones</span></div>
+    <p class="ley l1">Una comida popular de 100 o 200 personas.</p>
+    <p class="ley l2">Nueve paellas gigantes en una misma fiesta de pueblo.</p>
+    <p class="ley l3">Hasta 10.000 comensales en un solo evento. Paella valenciana, de marisco y otros arroces a convenir.</p>
+  </div>
+</section>
+
+<!-- 4. Experiencia -->
+<section class="pagina partida">
+  <div class="contenido izq">
+    <h2>Fiestas en las que ya hemos cocinado</h2>
+    <ul class="lista">
+      <li><b>Comunitat Valenciana:</b> València, Paiporta, Albal, Llocnou de la Corona y decenas de municipios más.</li>
+      <li><b>Torredembarra:</b> paella de marisco de 600 raciones con el Ajuntament.</li>
+      <li><b>Andorra:</b> paellas populares en Andorra la Vella, Escaldes-Engordany y Sant Julià de Lòria.</li>
+      <li><b>Barcelona, Madrid y Córdoba</b>, en fiestas y grandes eventos.</li>
+      <li>Una paella popular para <b>2.000 personas</b>, y nueve paellas para <b>1.500</b> en una sola jornada.</li>
+    </ul>
+    <div class="dana">
+      <b>Durante la DANA</b> colaboramos de forma altruista con la ONG World Central Kitchen, cocinando 3.000 raciones diarias en los pueblos afectados.
+    </div>
+    <div class="miniatura"><img class="foto" src="fotos/torredembarra.jpg" alt="Equipo y organizadores con una paella de marisco en Torredembarra"></div>
+  </div>
+  <img class="foto" src="fotos/fila_paellas_calle.jpg" alt="Fila de paellas gigantes en una calle durante una fiesta">
+</section>
+
+<!-- 5. Calidad -->
+<section class="pagina calidad">
+  <img class="foto" src="fotos/valenciana_humeante.jpg" alt="Paella valenciana humeante con gente esperando detrás" style="object-position: center 60%">
+  <div class="tiras"><img class="foto" src="fotos/alcachofas.jpg" alt="Alcachofas frescas sofriéndose en la paellera"></div>
+  <div class="panel">
+    <h2>La calidad, nuestra mejor garantía</h2>
+    <p>Ingredientes frescos, en la cantidad justa y cocinados al momento. Cuidamos cada paso, del sofrito al punto del arroz.</p>
+    <p>Así el ayuntamiento sabe que sus vecinos y vecinas quedarán plenamente satisfechos con la paella que se sirva.</p>
+  </div>
+</section>
+
+<!-- 6. Presupuesto y contacto -->
+<section class="pagina partida">
+  <img class="foto" src="fotos/fuego_plaza.jpg" alt="Paelleras al fuego de leña en una plaza">
+  <div class="contenido">
+    <h2>Pídanos presupuesto sin compromiso</h2>
+    <div class="precio">
+      <div class="cifra">Desde 5 € por ración</div>
+      <p>IVA no incluido. El precio depende del número de raciones; díganos la fecha, el lugar y los comensales y les enviamos un presupuesto cerrado.</p>
+    </div>
+    <ul class="garantias">
+      <li>Registro sanitario</li>
+      <li>Seguro de responsabilidad civil</li>
+      <li>Contratación y facturación con una empresa con sede en València</li>
+    </ul>
+    <div class="contacto">
+      <div class="nombre">Guillermo Crespo Bejarano</div>
+      Administrador de Filencia S.L.<br>
+      C. Padre Viñas, 24, 46019 València<br>
+      Tel. 630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com<br>
+      <span class="suave">abundimonterde.es &nbsp;&nbsp; Instagram @abundi_monterde</span>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
