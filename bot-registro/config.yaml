@@ -5,17 +5,16 @@
 
 interesado:
   tipo: sociedad            # sociedad o autonomo
-  razon_social: "[NOMBRE DE LA EMPRESA]"
-  cif: "[CIF]"
-  direccion: "[DIRECCIÓN]"
-  email: "[EMAIL]"
-  telefono: "[TELÉFONO]"
+  razon_social: "Filencia S.L."
+  cif: "B97093710"
+  direccion: "C. Padre Viñas, 24, 46019 València"
+  email: "crespob.guillermo@gmail.com"
+  telefono: "630907468"
 
 textos:
   asunto: "Propuesta de paellas gigantes para las fiestas de {municipio}"
   expone: >
-    Que [NOMBRE DE LA SOCIEDAD VALENCIANA], delegación en España de Abundi
-    Monterde, lleva 30 años elaborando paellas gigantes para fiestas y eventos
+    Que Filencia S.L., delegación en España de Abundi Monterde, lleva 30 años elaborando paellas gigantes para fiestas y eventos
     populares de hasta 10.000 personas, con ingredientes frescos, registro
     sanitario y seguro de responsabilidad civil. Se adjunta carta de
     presentación y dossier.
