@@ -129,6 +129,33 @@
   .contacto .nombre { font-weight: 800; font-size: 13pt; }
   .contacto { display: grid; grid-template-columns: 1fr 22mm; column-gap: 6mm; align-items: end; }
   .contacto img { width: 22mm; height: auto; }
+
+  /* Experiencia con dos fotos apiladas */
+  .apiladas { display: grid; grid-template-rows: 1fr 1fr; gap: 2mm; height: 210mm; }
+  .apiladas .foto { height: 104mm; }
+
+  /* Variedades */
+  .variedades { padding: 16mm 18mm; }
+  .variedades h2 { margin-bottom: 4mm; }
+  .variedades .intro { max-width: 200mm; margin-bottom: 7mm; }
+  .rejilla { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5mm; }
+  .rejilla figure { margin: 0; }
+  .rejilla img { width: 100%; height: 118mm; object-fit: cover; display: block; }
+  .rejilla figcaption { margin-top: 2.5mm; font-weight: 700; font-size: 11pt; }
+  .rejilla figcaption span { display: block; font-weight: 400; font-size: 9.5pt; color: var(--gris); }
+
+  /* Así trabajamos: es una secuencia real, por eso va numerada */
+  .proceso { padding: 16mm 18mm; }
+  .fotos3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin-bottom: 8mm; }
+  .fotos3 img { width: 100%; height: 104mm; object-fit: cover; display: block; }
+  .pasos { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 7mm; counter-reset: paso; }
+  .pasos li { counter-increment: paso; font-size: 10.5pt; line-height: 1.45; border-top: 1.2mm solid var(--azafran); padding-top: 3mm; }
+  .pasos li::before { content: counter(paso); display: block; font-family: "Inter Display", "Inter", sans-serif;
+    font-weight: 900; font-size: 22pt; line-height: 1; margin-bottom: 2mm; }
+  .pasos b { display: block; font-size: 11pt; margin-bottom: 1mm; }
+
+  .qr { display: flex; gap: 4mm; align-items: center; margin-top: 5mm; font-size: 9.5pt; color: var(--gris); }
+  .qr img { width: 24mm; height: 24mm; }
 </style>
 </head>
 <body>
@@ -141,15 +168,15 @@
     <p class="lema">De 100 a 10.000 raciones, cocinadas en la plaza, delante de los vecinos.</p>
     <div class="pie">
       <strong>Filencia S.L.</strong>, delegación de Abundi Monterde en la Comunitat Valenciana<br>
-      <span class="suave">630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com &nbsp;&nbsp; abundimonterde.es</span>
+      <span class="suave">630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com</span>
     </div>
   </div>
-  <img class="foto foto-portada" src="fotos/fila_paellas_calle.jpg" alt="Fila de paellas gigantes en una calle durante una fiesta, con la carpa de Abundi Monterde" style="object-position: 30% center">
+  <img class="foto foto-portada" src="fotos/portada_gambas.jpg" alt="Paella gigante de gambas rojas vista desde arriba">
 </section>
 
 <!-- 2. Quiénes somos -->
 <section class="pagina partida">
-  <img class="foto" src="fotos/pasion_paella.jpg" alt="Cocinero de Abundi Monterde removiendo una paella gigante">
+  <img class="foto" src="fotos/equipo_carpa.jpg" alt="El equipo de Abundi Monterde bajo su carpa, junto a una fideuà gigante">
   <div class="contenido">
     <h2>Treinta años de pasión por la paella</h2>
     <p>Abundi Monterde lleva tres décadas cocinando paellas gigantes en fiestas patronales, comidas populares y grandes eventos.</p>
@@ -163,20 +190,7 @@
   </div>
 </section>
 
-<!-- 3. Tamaños -->
-<section class="pagina tamanos">
-  <h2>Una paella a la medida de cada fiesta</h2>
-  <div class="escala">
-    <div class="paellera p1"><span class="cifra">100</span><span class="unidad">raciones</span></div>
-    <div class="paellera p2"><span class="cifra">1.500</span><span class="unidad">raciones</span></div>
-    <div class="paellera p3"><span class="cifra">10.000</span><span class="unidad">raciones</span></div>
-    <p class="ley l1">Una comida popular de 100 o 200 personas.</p>
-    <p class="ley l2">Nueve paellas gigantes en una misma fiesta de pueblo.</p>
-    <p class="ley l3">Hasta 10.000 comensales en un solo evento. Paella valenciana, de marisco y otros arroces a convenir.</p>
-  </div>
-</section>
-
-<!-- 4. Experiencia -->
+<!-- 3. Experiencia -->
 <section class="pagina partida">
   <div class="contenido izq">
     <h2>Fiestas en las que ya hemos cocinado</h2>
@@ -190,25 +204,57 @@
     <div class="dana">
       <b>Durante la DANA</b> colaboramos de forma altruista con la ONG World Central Kitchen, cocinando 3.000 raciones diarias en los pueblos afectados.
     </div>
-    <div class="miniatura"><img class="foto" src="fotos/torredembarra.jpg" alt="Equipo y organizadores con una paella de marisco en Torredembarra"></div>
   </div>
-  <img class="foto" src="fotos/fuego_plaza.jpg" alt="Paelleras al fuego de leña en una plaza">
-</section>
-
-<!-- 5. Calidad -->
-<section class="pagina calidad">
-  <img class="foto" src="fotos/valenciana_humeante.jpg" alt="Paella valenciana humeante con gente esperando detrás" style="object-position: center 60%">
-  <div class="tiras"><img class="foto" src="fotos/alcachofas.jpg" alt="Alcachofas frescas sofriéndose en la paellera"></div>
-  <div class="panel">
-    <h2>La calidad, nuestra mejor garantía</h2>
-    <p>Ingredientes frescos, en la cantidad justa y cocinados al momento. Cuidamos cada paso, del sofrito al punto del arroz.</p>
-    <p>Así el ayuntamiento sabe que sus vecinos y vecinas quedarán plenamente satisfechos con la paella que se sirva.</p>
+  <div class="apiladas">
+    <img class="foto" src="fotos/autoridades_multitud.jpg" alt="Organizadores y autoridades junto a una paella gigante, con una multitud detrás" style="object-position: center 35%">
+    <img class="foto" src="fotos/cola_vecinos.jpg" alt="Vecinos haciendo cola mientras se sirve una paella gigante en la calle" style="object-position: center 40%">
   </div>
 </section>
 
-<!-- 6. Presupuesto y contacto -->
+<!-- 4. Tamaños -->
+<section class="pagina tamanos">
+  <h2>Una paella a la medida de cada fiesta</h2>
+  <div class="escala">
+    <div class="paellera p1"><span class="cifra">100</span><span class="unidad">raciones</span></div>
+    <div class="paellera p2"><span class="cifra">1.500</span><span class="unidad">raciones</span></div>
+    <div class="paellera p3"><span class="cifra">10.000</span><span class="unidad">raciones</span></div>
+    <p class="ley l1">Una comida popular de 100 o 200 personas.</p>
+    <p class="ley l2">Nueve paellas gigantes en una misma fiesta de pueblo.</p>
+    <p class="ley l3">Hasta 10.000 comensales en un solo evento.</p>
+  </div>
+</section>
+
+<!-- 5. Variedades y calidad -->
+<section class="pagina variedades">
+  <h2>Arroces para cada fiesta</h2>
+  <p class="intro">Paella valenciana, de marisco, fideuà y arroces de temporada. Ingredientes frescos, en la cantidad justa y cocinados al momento, para que los vecinos y vecinas queden plenamente satisfechos.</p>
+  <div class="rejilla">
+    <figure><img src="fotos/valenciana_panceta.jpg" alt="Paella gigante con verduras y carne"><figcaption>Paella valenciana<span>Con verdura de temporada</span></figcaption></figure>
+    <figure><img src="fotos/marisco.jpg" alt="Paella gigante de marisco con gambas"><figcaption>Paella de marisco<span>Gambas y cangrejo</span></figcaption></figure>
+    <figure><img src="fotos/sofrito.jpg" alt="Sofrito de pollo, pimiento y setas en una paellera gigante"><figcaption>El sofrito<span>Producto fresco, en el momento</span></figcaption></figure>
+    <figure><img src="fotos/valenciana_humeante.jpg" alt="Paella humeante recién hecha"><figcaption>Recién hecha<span>Al punto, a la hora de comer</span></figcaption></figure>
+  </div>
+</section>
+
+<!-- 6. Así trabajamos -->
+<section class="pagina proceso">
+  <h2>Así trabajamos</h2>
+  <div class="fotos3">
+    <img src="fotos/grua_paellera.jpg" alt="Una paellera gigante descargada con grúa desde un camión">
+    <img src="fotos/echando_arroz.jpg" alt="Cocinero echando el arroz en una paellera gigante">
+    <img src="fotos/sirviendo_evento.jpg" alt="Cocinero sirviendo en un evento con varias paelleras" style="object-position: center 60%">
+  </div>
+  <ol class="pasos">
+    <li><b>Nos cuentan su fiesta</b>Fecha, lugar y número de comensales.</li>
+    <li><b>Presupuesto cerrado</b>Les enviamos una propuesta sin compromiso.</li>
+    <li><b>Llegamos con nuestro equipo</b>Paelleras gigantes y cocina propias.</li>
+    <li><b>Cocinamos en directo</b>A la vista de los vecinos, con la paella lista a la hora acordada.</li>
+  </ol>
+</section>
+
+<!-- 7. Presupuesto y contacto -->
 <section class="pagina partida">
-  <img class="foto" src="fotos/paella_vecinos.jpg" alt="Paella gigante al aire libre con vecinos alrededor" style="object-position: 45% center">
+  <img class="foto" src="fotos/fila_paellas_calle.jpg" alt="Fila de paellas gigantes en una calle, con la carpa de Abundi Monterde" style="object-position: 30% center">
   <div class="contenido">
     <h2>Pídanos presupuesto sin compromiso</h2>
     <div class="precio">
@@ -220,13 +266,14 @@
       <li>Seguro de responsabilidad civil</li>
       <li>Contratación y facturación con una empresa con sede en València</li>
     </ul>
+    <div class="qr"><img src="fotos/qr_instagram.png" alt="Código QR al Instagram de Abundi Monterde"><span>Escanee el código para ver nuestras paellas en Instagram, @abundi_monterde</span></div>
     <div class="contacto">
       <div>
         <div class="nombre">Guillermo Crespo Bejarano</div>
         Administrador de Filencia S.L.<br>
         C. Padre Viñas, 24, 46019 València<br>
         Tel. 630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com<br>
-        <span class="suave">abundimonterde.es &nbsp;&nbsp; Instagram @abundi_monterde</span>
+        <span class="suave">abundimonterde.es</span>
       </div>
       <img src="fotos/logo.png" alt="Logotipo de Abundi Monterde">
     </div>
