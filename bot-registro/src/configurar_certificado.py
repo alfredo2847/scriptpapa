@@ -25,7 +25,8 @@ CLAVE_POLITICA = r"Software\Policies\Google\Chrome\AutoSelectCertificateForUrls"
 def listar_certificados() -> list[dict]:
     script = (
         "Get-ChildItem Cert:\\CurrentUser\\My | Where-Object { $_.HasPrivateKey } | "
-        "Select-Object Subject, Issuer, NotAfter | ConvertTo-Json -Compress"
+        "Select-Object Subject, Issuer, @{n='NotAfter';e={$_.NotAfter.ToString('dd/MM/yyyy')}} | "
+        "ConvertTo-Json -Compress"
     )
     salida = subprocess.run(["powershell", "-NoProfile", "-Command", script],
                             capture_output=True, text=True, check=True).stdout.strip()

@@ -64,6 +64,12 @@ def cmd_analizar(args, config, log):
     analizar_capturas.ejecutar(config, log, carpeta=args.carpeta)
 
 
+def cmd_explorar(args, config, log):
+    import explorar_reg
+
+    explorar_reg.ejecutar(config, log)
+
+
 def cmd_certificado(args, config, log):
     import configurar_certificado
 
@@ -141,6 +147,9 @@ def construir_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("analizar-capturas", help="resumir campos y botones de las capturas de referencia")
     s.add_argument("--carpeta", help="carpeta capturas/referencia_<fecha> (por defecto la última)")
     s.set_defaults(func=cmd_analizar)
+
+    s = sub.add_parser("explorar-reg", help="leer la estructura del formulario del REG (no envía nada)")
+    s.set_defaults(func=cmd_explorar)
 
     s = sub.add_parser("configurar-certificado", help="que Chrome elija solo el certificado en Cl@ve y el REG")
     s.add_argument("--quitar", action="store_true", help="desactivar la selección automática")
