@@ -99,8 +99,12 @@ def es_de_valencia(html: str, nif: str = "") -> bool:
 
 
 def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict,
-                nif: str = "") -> tuple[str, str]:
-    """Devuelve (url_sede, plataforma). plataforma vacía si no se reconoce; url vacía si no hay sede."""
+                nif: str = "", exigir_provincia: bool = False) -> tuple[str, str]:
+    """Devuelve (url_sede, plataforma). plataforma vacía si no se reconoce; url vacía si no hay sede.
+
+    La página tiene que mencionar el municipio. Si hay un municipio con el mismo
+    nombre en otra provincia (exigir_provincia), además tiene que ser de Valencia.
+    """
     import requests
 
     sesion = requests.Session()
@@ -108,13 +112,18 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
     slugs = slugs_municipio(municipio)
     primera_sede = ""
 
+    def es_suya(html: str) -> bool:
+        if not menciona_municipio(html, municipio):
+            return False
+        return es_de_valencia(html, nif) if exigir_provincia else True
+
     def probar(url: str) -> tuple[str, str] | None:
         nonlocal primera_sede
         respuesta = _descargar(sesion, url, timeout)
         if not respuesta:
             return None
         url_final, html = respuesta
-        if not menciona_municipio(html, municipio) or not es_de_valencia(html, nif):
+        if not es_suya(html):
             return None
         plataforma = identificar_plataforma(url_final, html, plataformas)
         if plataforma:
@@ -141,7 +150,7 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
         if not respuesta:
             continue
         url_final, html = respuesta
-        if not menciona_municipio(html, municipio) or not es_de_valencia(html, nif):
+        if not es_suya(html):
             continue  # el dominio existe pero no es la web de este ayuntamiento
         for enlace in _enlaces_sede(url_final, html):
             resultado = probar(enlace)
@@ -178,7 +187,7 @@ def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = 
     with ThreadPoolExecutor(max_workers=int(config["deteccion"].get("hilos", 6))) as grupo:
         tareas = {
             grupo.submit(buscar_sede, f["municipio"], str(f.get("web_dir3") or ""), timeout, plataformas,
-                         str(f.get("nif_ayto") or "")): f
+                         str(f.get("nif_ayto") or ""), bool(f.get("homonimos"))): f
             for f in restantes
         }
         for tarea in as_completed(tareas):

@@ -49,6 +49,7 @@ COLUMNAS = [
     # columnas auxiliares
     "web_dir3",
     "nif_ayto",
+    "homonimos",
     "plataforma_sede",
     "fecha_deteccion",
 ]

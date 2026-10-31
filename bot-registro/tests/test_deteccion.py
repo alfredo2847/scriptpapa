@@ -41,9 +41,18 @@ def test_homonimo_de_otra_provincia(monkeypatch):
         return lambda sesion, url, timeout: (url, paginas[url]) if url in paginas else None
 
     monkeypatch.setattr(deteccion_via, "_descargar", descarga({"https://alcudia.sedelectronica.es": mallorca}))
-    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS) == ("", "")
+    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS, exigir_provincia=True) == ("", "")
     monkeypatch.setattr(deteccion_via, "_descargar", descarga({"https://lalcudia.sedelectronica.es": valencia}))
-    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS)[1] == "gestiona"
+    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS, exigir_provincia=True)[1] == "gestiona"
+
+
+def test_sin_homonimo_basta_el_nombre(monkeypatch):
+    """La página de inicio de Gestiona no muestra código postal: sin homónimos no se exige."""
+    pagina = "<title>Sede Electrónica del Ayuntamiento de Agullent</title>espublico"
+    monkeypatch.setattr(deteccion_via, "_descargar",
+                        lambda s, url, t: (url, pagina) if url == "https://agullent.sedelectronica.es" else None)
+    assert buscar_sede("Agullent", "", 1, PLATAFORMAS)[1] == "gestiona"
+    assert buscar_sede("Agullent", "", 1, PLATAFORMAS, exigir_provincia=True) == ("", "")
 
 
 def test_es_de_valencia():

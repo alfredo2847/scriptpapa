@@ -29,6 +29,7 @@ from comun import (
     elegir_unidad,
     municipio_desde_denominacion,
     normalizar,
+    variantes_municipio,
 )
 from hoja import ENVIADO, PENDIENTE, HojaControl
 
@@ -326,7 +327,36 @@ def calcular_prioridad(poblacion, umbrales: dict) -> int:
 # 7. Hoja de control
 # ---------------------------------------------------------------------------
 
-def actualizar_hoja(hoja: HojaControl, ayuntamientos, hijas, poblacion, umbrales, log) -> None:
+PATRON_AYTO_ESPANA = re.compile(r"^L01\d{6}$")
+
+
+def buscar_homonimos(ayuntamientos: list[dict], unidades: list[dict]) -> dict[str, list[str]]:
+    """Ayuntamientos de otras provincias con el mismo nombre (l'Alcúdia / Alcúdia de Mallorca).
+
+    Para esos municipios la detección de sede exige pruebas de que la página es
+    de la provincia de Valencia.
+    """
+    por_variante: dict[str, list[str]] = {}
+    for u in unidades:
+        if not PATRON_AYTO_ESPANA.match(u["codigo"]) or PATRON_AYTO_VALENCIA.match(u["codigo"]):
+            continue
+        if u.get("tipo") and u["tipo"] != "AY":
+            continue
+        nombre = municipio_desde_denominacion(u["nombre"])
+        for v in variantes_municipio(nombre):
+            por_variante.setdefault(v, []).append(f"{nombre} ({u['codigo']})")
+    resultado = {}
+    for a in ayuntamientos:
+        otros = []
+        for v in variantes_municipio(municipio_desde_denominacion(a["nombre"])):
+            otros += por_variante.get(v, [])
+        if otros:
+            resultado[a["codigo"]] = list(dict.fromkeys(otros))
+    return resultado
+
+
+def actualizar_hoja(hoja: HojaControl, ayuntamientos, hijas, poblacion, umbrales, log,
+                    homonimos: dict | None = None) -> None:
     hoy = datetime.now().strftime("%Y-%m-%d")
     vistos = set()
     for a in sorted(ayuntamientos, key=lambda x: x["codigo"]):
@@ -340,6 +370,7 @@ def actualizar_hoja(hoja: HojaControl, ayuntamientos, hijas, poblacion, umbrales
             fila["email_contacto"] = a["email"]
         if a.get("nif"):
             fila["nif_ayto"] = a["nif"]
+        fila["homonimos"] = "; ".join((homonimos or {}).get(codigo, []))
         pob = poblacion.get(codigo_ine(codigo)) if poblacion else None
         if pob is not None:
             fila["poblacion"] = pob
@@ -430,7 +461,9 @@ def ejecutar(config: dict, log, archivo: str | None = None, poblacion: str | Non
     copia = hoja.copia_seguridad()
     if copia:
         log.info(f"Copia de la hoja en {copia}")
-    actualizar_hoja(hoja, ayuntamientos, hijas, datos_poblacion, cfg.get("prioridad", {}), log)
+    homonimos = buscar_homonimos(ayuntamientos, unidades)
+    log.info(f"Municipios con homónimo en otra provincia: {len(homonimos)}")
+    actualizar_hoja(hoja, ayuntamientos, hijas, datos_poblacion, cfg.get("prioridad", {}), log, homonimos)
     hoja.guardar()
 
     con_fiestas = sum(1 for f in hoja if f.get("dir3_destino") and f["dir3_destino"] != f["dir3_ayto"])

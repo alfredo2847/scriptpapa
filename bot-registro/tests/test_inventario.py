@@ -2,7 +2,7 @@
 
 from openpyxl import Workbook
 
-from inventario import filtrar_ayuntamientos, leer_unidades, solo_vigentes, unidades_hijas
+from inventario import buscar_homonimos, filtrar_ayuntamientos, leer_unidades, solo_vigentes, unidades_hijas
 
 CABECERA = [None, "C_ID_UD_ORGANICA", "C_DNM_UD_ORGANICA", "C_ID_NIVEL_ADMON", "C_ID_TIPO_ENT_PUBLICA",
             "N_NIVEL_JERARQUICO", "C_ID_AMB_PROVINCIA", "C_DESC_PROV", "C_ID_DEP_UD_SUPERIOR",
@@ -55,3 +55,14 @@ def test_formato_real_ctt(tmp_path):
 
     hijas = unidades_hijas(ayuntamientos, unidades)
     assert sorted(h["codigo"] for h in hijas["L01462508"]) == ["LA0001111", "LA0001112"]
+
+
+def test_homonimos():
+    unidades = [
+        {"codigo": "L01460193", "nombre": "Ayuntamiento de Alcúdia, l'", "tipo": "AY"},
+        {"codigo": "L01070034", "nombre": "Ajuntament d'Alcúdia", "tipo": "AY"},
+        {"codigo": "L01460076", "nombre": "Ayuntamiento de Albal", "tipo": "AY"},
+        {"codigo": "LA0000001", "nombre": "Ayuntamiento de Albal", "tipo": "AY"},  # no es un L01
+    ]
+    homonimos = buscar_homonimos(unidades[:1] + unidades[2:3], unidades)
+    assert homonimos == {"L01460193": ["Alcúdia (L01070034)"]}
