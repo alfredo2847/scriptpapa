@@ -12,11 +12,12 @@ interesado:
   telefono: "[TELÉFONO]"
 
 textos:
-  asunto: "Propuesta de servicio de paellas para las fiestas de {municipio}"
+  asunto: "Propuesta de paellas gigantes para las fiestas de {municipio}"
   expone: >
-    Que [NOMBRE DE LA EMPRESA] elabora paellas para eventos de 150 a 200
-    personas y trabaja habitualmente con ayuntamientos en sus fiestas
-    patronales y populares. Se adjunta carta de presentación y dossier.
+    Que Abundi Monterde lleva 30 años elaborando paellas gigantes para fiestas
+    y eventos populares de hasta 10.000 personas, con ingredientes frescos,
+    registro sanitario y seguro de responsabilidad civil. Se adjunta carta de
+    presentación y dossier.
   solicita: >
     Que se dé traslado de este escrito al Alcalde/sa y al Concejal/a de
     Fiestas de {municipio} y se tenga en cuenta nuestra propuesta para la
