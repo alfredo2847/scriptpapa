@@ -153,6 +153,7 @@ class Navegador:
             headless=headless,
             accept_downloads=True,
             handle_sigint=False,  # Ctrl+C lo gestiona el bot para terminar el ayuntamiento en curso
+            chromium_sandbox=True,  # sin el aviso de Chrome sobre --no-sandbox
             no_viewport=not headless,
         )
         if nav.get("canal"):

@@ -88,16 +88,28 @@ def ejecutar(config: dict, log) -> None:
         log.info("Formulario abierto. Leyendo los componentes…")
         partes.append("=== COMPONENTES (paso 1) ===\n" + pagina.evaluate(VOLCAR_COMPONENTES_JS))
 
-        # Abrir un desplegable para ver cómo muestra las opciones (no se elige nada).
-        for selector in ('dnt-select#tipoDoc', 'dnt-select#streetType'):
-            desplegable = pagina.locator(selector)
-            if desplegable.count():
-                desplegable.first.scroll_into_view_if_needed()
-                desplegable.first.click()
+        # Pasar a "Representante" (muestra el resto de campos) y abrir desplegables
+        # para ver cómo muestran las opciones. No se elige ni se envía nada.
+        try:
+            pagina.get_by_text("Representante", exact=True).first.click(timeout=5000)
+            time.sleep(1.5)
+            partes.append("=== COMPONENTES (modo representante) ===\n" + pagina.evaluate(VOLCAR_COMPONENTES_JS))
+        except Exception as e:  # noqa: BLE001 - es una exploración: se anota y se sigue
+            partes.append(f"=== No se pudo pulsar 'Representante': {str(e).splitlines()[0]} ===")
+        for selector in ('dnt-select#tipoDoc', 'dnt-select[id="represented.streetType"]', 'dnt-select#streetType'):
+            try:
+                desplegable = pagina.locator(selector).first
+                if not desplegable.is_visible():
+                    partes.append(f"=== {selector}: no visible ===")
+                    continue
+                desplegable.scroll_into_view_if_needed(timeout=5000)
+                desplegable.click(timeout=5000)
                 time.sleep(1.5)
                 partes.append(f"=== OPCIONES AL ABRIR {selector} ===\n" + pagina.evaluate(BUSCAR_OPCIONES_JS))
                 pagina.keyboard.press("Escape")
                 time.sleep(0.5)
+            except Exception as e:  # noqa: BLE001
+                partes.append(f"=== {selector}: {str(e).splitlines()[0]} ===")
         captura = RAIZ / "capturas" / f"exploracion_{marca_tiempo()}.png"
         pagina.screenshot(path=str(captura), full_page=True)
         partes.append(f"=== URL === {pagina.url}")
