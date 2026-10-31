@@ -56,6 +56,7 @@ ALIAS = {
     "web": ["c_url", "url", "web", "pagina_web", "url_web", "sitio_web", "direccion_web"],
     "tipo": ["c_id_tipo_ent_publica", "tipo_entidad", "tipo_ent_publica"],
     "email": ["contactos", "email", "correo", "correo_electronico"],
+    "nif": ["nif_cif", "nif", "cif"],
 }
 
 ESTADOS_VIGENTES = {"v", "vigente", "activa", "activo"}
@@ -208,6 +209,7 @@ def leer_unidades(ruta: Path, forzadas: dict | None = None) -> list[dict]:
             "web": valor("web"),
             "tipo": valor("tipo").upper(),
             "email": valor("email"),
+            "nif": valor("nif").upper(),
         })
     return unidades
 
@@ -336,6 +338,8 @@ def actualizar_hoja(hoja: HojaControl, ayuntamientos, hijas, poblacion, umbrales
             fila["web_dir3"] = a["web"]
         if a.get("email") and not fila.get("email_contacto"):
             fila["email_contacto"] = a["email"]
+        if a.get("nif"):
+            fila["nif_ayto"] = a["nif"]
         pob = poblacion.get(codigo_ine(codigo)) if poblacion else None
         if pob is not None:
             fila["poblacion"] = pob

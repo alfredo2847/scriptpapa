@@ -48,6 +48,7 @@ COLUMNAS = [
     "email_contacto",
     # columnas auxiliares
     "web_dir3",
+    "nif_ayto",
     "plataforma_sede",
     "fecha_deteccion",
 ]

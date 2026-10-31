@@ -82,7 +82,24 @@ def menciona_municipio(html: str, municipio: str) -> bool:
     return contiene_municipio(texto, municipio)
 
 
-def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict) -> tuple[str, str]:
+def es_de_valencia(html: str, nif: str = "") -> bool:
+    """La página es de un ayuntamiento de la provincia de Valencia.
+
+    Evita confundir municipios homónimos de otras provincias (l'Alcúdia y
+    Alcúdia de Mallorca): se exige el NIF del ayuntamiento, un código postal
+    46xxx o la provincia entre paréntesis.
+    """
+    sin_scripts = re.sub(r"<(script|style)\b.*?</\1>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+    texto = html_lib.unescape(re.sub(r"<[^>]+>", " ", sin_scripts))
+    if nif and nif.upper() in texto.upper().replace("-", ""):
+        return True
+    if re.search(r"(?<!\d)46\d{3}(?!\d)", texto):
+        return True
+    return bool(re.search(r"\((val[eè]ncia|valencia/val[eè]ncia|val[eè]ncia/valencia)\)", texto, re.IGNORECASE))
+
+
+def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict,
+                nif: str = "") -> tuple[str, str]:
     """Devuelve (url_sede, plataforma). plataforma vacía si no se reconoce; url vacía si no hay sede."""
     import requests
 
@@ -97,7 +114,7 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
         if not respuesta:
             return None
         url_final, html = respuesta
-        if not menciona_municipio(html, municipio):
+        if not menciona_municipio(html, municipio) or not es_de_valencia(html, nif):
             return None
         plataforma = identificar_plataforma(url_final, html, plataformas)
         if plataforma:
@@ -124,7 +141,7 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
         if not respuesta:
             continue
         url_final, html = respuesta
-        if not menciona_municipio(html, municipio):
+        if not menciona_municipio(html, municipio) or not es_de_valencia(html, nif):
             continue  # el dominio existe pero no es la web de este ayuntamiento
         for enlace in _enlaces_sede(url_final, html):
             resultado = probar(enlace)
@@ -160,7 +177,8 @@ def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = 
     hechos = 0
     with ThreadPoolExecutor(max_workers=int(config["deteccion"].get("hilos", 6))) as grupo:
         tareas = {
-            grupo.submit(buscar_sede, f["municipio"], str(f.get("web_dir3") or ""), timeout, plataformas): f
+            grupo.submit(buscar_sede, f["municipio"], str(f.get("web_dir3") or ""), timeout, plataformas,
+                         str(f.get("nif_ayto") or "")): f
             for f in restantes
         }
         for tarea in as_completed(tareas):
@@ -170,7 +188,7 @@ def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = 
             except Exception as e:  # una web rota no para la detección
                 url, plataforma = "", ""
                 log.warning(f"{fila['municipio']}: error buscando la sede: {e}")
-            fila["url_sede"] = url or fila.get("url_sede", "")
+            fila["url_sede"] = url  # sin restos de detecciones anteriores
             fila["plataforma_sede"] = plataforma
             if fila.get("via") == VIA_REC and not rec_comprobado:
                 pass  # sin comprobar el REC en esta pasada se mantiene la vía preferida
