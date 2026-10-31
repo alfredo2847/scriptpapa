@@ -45,15 +45,17 @@ ALIAS = {
         "denominacion_de_la_unidad", "nombre", "unidad",
     ],
     "superior": [
-        "c_id_ud_superior", "codigo_unidad_superior", "cod_unidad_superior",
+        "c_id_dep_ud_superior", "c_id_ud_superior", "codigo_unidad_superior", "cod_unidad_superior",
         "codigo_de_la_unidad_superior", "unidad_superior", "codigo_superior",
     ],
     "raiz": [
-        "c_id_ud_principal", "codigo_unidad_raiz", "cod_unidad_raiz", "codigo_de_la_unidad_raiz",
+        "c_id_dep_ud_principal", "c_id_ud_principal", "codigo_unidad_raiz", "cod_unidad_raiz", "codigo_de_la_unidad_raiz",
         "unidad_raiz", "codigo_raiz", "c_id_ud_raiz",
     ],
     "estado": ["c_id_estado", "estado", "estado_unidad", "cod_estado"],
     "web": ["c_url", "url", "web", "pagina_web", "url_web", "sitio_web", "direccion_web"],
+    "tipo": ["c_id_tipo_ent_publica", "tipo_entidad", "tipo_ent_publica"],
+    "email": ["contactos", "email", "correo", "correo_electronico"],
 }
 
 ESTADOS_VIGENTES = {"v", "vigente", "activa", "activo"}
@@ -113,17 +115,20 @@ def _filas_csv(contenido: bytes) -> list[list[str]]:
     return [fila for fila in csv.reader(io.StringIO(texto), delimiter=delimitador)]
 
 
-def _filas_xlsx(contenido: bytes) -> list[list[str]]:
-    libro = load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
-    mejor: list[list[str]] = []
-    for hoja in libro.worksheets:
-        filas = [["" if v is None else str(v).strip() for v in fila] for fila in hoja.iter_rows(values_only=True)]
-        if len(filas) > len(mejor):
-            mejor = filas
-    return mejor
+def _tablas_xlsx(contenido: bytes) -> list[list[list[str]]]:
+    """Una tabla por hoja del libro (el DIR3 trae también hojas de leyenda y catálogos).
+
+    Sin read_only: con él, openpyxl se fía de las dimensiones guardadas en el
+    archivo, que en las descargas del CTT no son correctas.
+    """
+    libro = load_workbook(io.BytesIO(contenido), data_only=True)
+    return [
+        [["" if v is None else str(v).strip() for v in fila] for fila in hoja.iter_rows(values_only=True)]
+        for hoja in libro.worksheets
+    ]
 
 
-def leer_filas_brutas(ruta: Path) -> list[list[str]]:
+def leer_tablas(ruta: Path) -> list[list[list[str]]]:
     sufijo = ruta.suffix.lower()
     contenido = ruta.read_bytes()
     if sufijo == ".zip":
@@ -134,14 +139,23 @@ def leer_filas_brutas(ruta: Path) -> list[list[str]]:
             # el mayor suele ser el listado de unidades
             nombre = max(candidatos, key=lambda n: z.getinfo(n).file_size)
             datos = z.read(nombre)
-            return _filas_xlsx(datos) if nombre.lower().endswith(".xlsx") else _filas_csv(datos)
+            return _tablas_xlsx(datos) if nombre.lower().endswith(".xlsx") else [_filas_csv(datos)]
     if sufijo in (".xlsx", ".xlsm"):
-        return _filas_xlsx(contenido)
+        return _tablas_xlsx(contenido)
     if sufijo in (".csv", ".txt"):
-        return _filas_csv(contenido)
+        return [_filas_csv(contenido)]
     raise InventarioError(
         f"Formato {sufijo} no soportado. Abre el archivo en Excel y guárdalo como .xlsx o .csv"
     )
+
+
+def buscar_cabecera(tablas, es_cabecera, max_filas: int = 30):
+    """Primera (tabla, índice de fila) cuya fila cumple es_cabecera(fila), o (None, None)."""
+    for filas in tablas:
+        for i, fila in enumerate(filas[:max_filas]):
+            if es_cabecera(fila):
+                return filas, i
+    return None, None
 
 
 def detectar_columnas(cabecera: list[str], forzadas: dict | None = None) -> dict[str, int]:
@@ -161,20 +175,22 @@ def detectar_columnas(cabecera: list[str], forzadas: dict | None = None) -> dict
 
 
 def leer_unidades(ruta: Path, forzadas: dict | None = None) -> list[dict]:
-    """Devuelve una lista de unidades {codigo, nombre, superior, raiz, estado, web}."""
-    filas = leer_filas_brutas(ruta)
-    # La cabecera es la primera fila (de las 20 primeras) en la que se reconoce código y nombre.
-    for i, fila in enumerate(filas[:20]):
+    """Devuelve una lista de unidades {codigo, nombre, superior, raiz, estado, web, tipo, email}."""
+    tablas = leer_tablas(ruta)
+
+    def es_cabecera(fila):
         columnas = detectar_columnas(fila, forzadas)
-        if "codigo" in columnas and "nombre" in columnas:
-            break
-    else:
-        cabeceras = filas[0] if filas else []
+        return "codigo" in columnas and "nombre" in columnas
+
+    filas, i = buscar_cabecera(tablas, es_cabecera)
+    if filas is None:
+        primeras = [next((f for f in t if any(f)), []) for t in tablas]
         raise InventarioError(
             "No se reconocen las columnas de código y denominación en el DIR3. "
-            f"Cabecera encontrada: {cabeceras}. Indica los nombres en config.yaml, "
+            f"Primeras filas de cada hoja: {primeras}. Indica los nombres en config.yaml, "
             "inventario.columnas (codigo, nombre, superior, raiz, estado, web)."
         )
+    columnas = detectar_columnas(filas[i], forzadas)
     unidades = []
     for fila in filas[i + 1:]:
         def valor(campo):
@@ -190,6 +206,8 @@ def leer_unidades(ruta: Path, forzadas: dict | None = None) -> list[dict]:
             "raiz": valor("raiz").upper(),
             "estado": valor("estado"),
             "web": valor("web"),
+            "tipo": valor("tipo").upper(),
+            "email": valor("email"),
         })
     return unidades
 
@@ -216,7 +234,7 @@ def filtrar_ayuntamientos(unidades: list[dict]) -> tuple[list[dict], list[dict]]
     for u in unidades:
         if not PATRON_AYTO_VALENCIA.match(u["codigo"]):
             continue
-        if PATRON_NO_AYUNTAMIENTO.search(normalizar(u["nombre"])):
+        if (u.get("tipo") and u["tipo"] != "AY") or PATRON_NO_AYUNTAMIENTO.search(normalizar(u["nombre"])):
             descartados.append(u)
         else:
             ayuntamientos.append(u)
@@ -253,13 +271,14 @@ def leer_poblacion(ruta: Path) -> dict[str, int]:
 
     Devuelve {codigo_ine_5_digitos: habitantes}.
     """
-    filas = leer_filas_brutas(ruta)
-    for i, fila in enumerate(filas[:20]):
+    def es_cabecera(fila):
         claves = [_clave(c) for c in fila]
-        if ("cpro" in claves and "cmun" in claves) or "codigo_ine" in claves:
-            break
-    else:
+        return ("cpro" in claves and "cmun" in claves) or "codigo_ine" in claves
+
+    filas, i = buscar_cabecera(leer_tablas(ruta), es_cabecera)
+    if filas is None:
         raise InventarioError("No se reconocen las columnas del fichero de población (CPRO/CMUN o codigo_ine)")
+    claves = [_clave(c) for c in filas[i]]
     col_pob = next((j for j, c in enumerate(claves) if c.startswith("pob")), None)
     if col_pob is None:
         raise InventarioError("No se encuentra la columna de población (POBxx o poblacion)")
@@ -315,6 +334,8 @@ def actualizar_hoja(hoja: HojaControl, ayuntamientos, hijas, poblacion, umbrales
         fila["municipio"] = municipio_desde_denominacion(a["nombre"])
         if a.get("web"):
             fila["web_dir3"] = a["web"]
+        if a.get("email") and not fila.get("email_contacto"):
+            fila["email_contacto"] = a["email"]
         pob = poblacion.get(codigo_ine(codigo)) if poblacion else None
         if pob is not None:
             fila["poblacion"] = pob
