@@ -11,13 +11,14 @@ Solo se procesan los ayuntamientos PENDIENTES (o en ERROR/PRUEBA_OK, que aún no
 
 from __future__ import annotations
 
+import html as html_lib
 import re
 import warnings
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin, urlparse
 
-from comun import ahora_texto, slugs_municipio
+from comun import ahora_texto, contiene_municipio, slugs_municipio
 from hoja import ERROR, PENDIENTE, PRUEBA_OK, VIA_MANUAL, VIA_REC, HojaControl
 from sedes.base import cargar_plataformas, identificar_plataforma
 
@@ -69,6 +70,18 @@ def _enlaces_sede(url_base: str, html: str) -> list[str]:
     return list(dict.fromkeys(enlaces))[:5]
 
 
+def menciona_municipio(html: str, municipio: str) -> bool:
+    """La página habla de ese municipio (título o texto visible).
+
+    Algunas plataformas responden con una página genérica a cualquier subdominio
+    (p. ej. pueblo-inventado.sedelectronica.es); sin el nombre del municipio no
+    se puede saber si la sede es suya.
+    """
+    sin_scripts = re.sub(r"<(script|style)\b.*?</\1>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+    texto = html_lib.unescape(re.sub(r"<[^>]+>", " ", sin_scripts))
+    return contiene_municipio(texto, municipio)
+
+
 def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict) -> tuple[str, str]:
     """Devuelve (url_sede, plataforma). plataforma vacía si no se reconoce; url vacía si no hay sede."""
     import requests
@@ -84,6 +97,8 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
         if not respuesta:
             return None
         url_final, html = respuesta
+        if not menciona_municipio(html, municipio):
+            return None
         plataforma = identificar_plataforma(url_final, html, plataformas)
         if plataforma:
             return url_final, plataforma
@@ -109,6 +124,8 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
         if not respuesta:
             continue
         url_final, html = respuesta
+        if not menciona_municipio(html, municipio):
+            continue  # el dominio existe pero no es la web de este ayuntamiento
         for enlace in _enlaces_sede(url_final, html):
             resultado = probar(enlace)
             if resultado:
