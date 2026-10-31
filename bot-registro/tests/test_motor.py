@@ -8,7 +8,7 @@ AQUI = Path(__file__).parent
 
 
 def test_plantillas_del_proyecto_son_validas():
-    assert not Flujo(CARPETA_HUELLAS / "rec.yaml").verificada
+    Flujo(CARPETA_HUELLAS / "rec.yaml")  # huellas reales del REG: deben cargar sin errores
     Flujo(CARPETA_HUELLAS / "sedes" / "_plantilla.yaml")
     assert Flujo(AQUI / "mock_rec" / "rec.yaml").verificada
 

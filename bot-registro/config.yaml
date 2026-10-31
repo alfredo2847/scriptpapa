@@ -10,6 +10,12 @@ interesado:
   direccion: "C. Padre Viñas, 24, 46019 València"
   email: "crespob.guillermo@gmail.com"
   telefono: "630907468"
+  # Dirección por partes, tal como la pide el formulario del REG
+  via_tipo: "Calle"
+  via_nombre: "Padre Viñas no.24"
+  provincia: "València/Valencia"
+  poblacion: "València"
+  cp: "46019"
 
 textos:
   asunto: "Propuesta de paellas gigantes para las fiestas de {municipio}"

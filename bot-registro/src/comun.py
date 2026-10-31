@@ -27,6 +27,11 @@ CONFIG_POR_DEFECTO = {
         "direccion": "",
         "email": "",
         "telefono": "",
+        "via_tipo": "Calle",
+        "via_nombre": "",
+        "provincia": "",
+        "poblacion": "",
+        "cp": "",
     },
     "textos": {"asunto": "", "expone": "", "solicita": ""},
     "documentos": {

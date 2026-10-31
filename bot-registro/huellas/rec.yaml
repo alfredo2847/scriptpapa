@@ -1,142 +1,179 @@
-# Huellas y pasos del Registro Electrónico Común (rec.redsara.es).
+# Huellas y pasos del Registro Electrónico General (reg.redsara.es).
 #
-# ESTADO: PLANTILLA SIN VERIFICAR.
-# Los pasos siguen la guía pública del REC, pero las URL, etiquetas y selectores
-# marcados con TODO se fijan con las capturas del envío manual de referencia:
+# Escritas a partir del envío manual de referencia a Gandia (REGAGE26e00093912184,
+# 01/11/2026), de las capturas de Cl@ve y de la exploración de los componentes del
+# formulario (python src/main.py grabar / analizar-capturas / explorar-reg).
 #
-#   python src/main.py grabar          (genera capturas/ y huellas/borrador_<fecha>.yaml)
-#
-# Cuando todo esté completo: verificada: true, y después
-#   python src/main.py validar-huellas
+# Cualquier cambio en este archivo obliga a repetir el modo prueba:
 #   python src/main.py enviar --prueba --max 5
 #
-# Mientras verificada sea false, el bot no envía ni consulta nada en el REC.
-# Cualquier cambio en este archivo obliga a repetir el modo prueba.
+# Notas del formulario:
+# - Los campos son componentes propios (dnt-input, dnt-select, dnt-checkbox…). Los
+#   selectores CSS de Playwright entran en su shadow DOM: 'dnt-input[formcontrolname="subject"] input'.
+# - Los desplegables se abren y se pulsa la opción con la acción 'elegir'.
+# - Dirección, teléfono y correo aparecen dos veces (representante e interesado):
+#   '>> nth=0' es el del representante y '>> nth=1' el del interesado.
+# - Los botones se localizan por su nombre accesible: 'role=button[name="Siguiente"]'.
 #
-# Selectores: sintaxis de Playwright (CSS "#id", "input[name=x]", "text=Siguiente",
-# "role=button[name='Firmar y enviar']"). Cada selector debe encontrar UN único elemento.
-#
-# Campos disponibles en los valores: {municipio} {asunto} {expone} {solicita}
-# {dir3_ayto} {dir3_destino} {razon_social} {cif} {direccion} {email} {telefono}
-# {tipo} {url_inicio}
+# Campos disponibles: {municipio} {asunto} {expone} {solicita} {dir3_ayto} {dir3_destino}
+# {razon_social} {cif} {email} {telefono} {via_tipo} {via_nombre} {provincia} {poblacion} {cp}
 
 plataforma: REC
-verificada: false
+verificada: true
 
 pantallas:
+  login:
+    url: 'reg\.redsara\.es/es/login'
+    etiquetas: ["Inicio de sesión", "Accede con tu Cl@ve"]
+  clave:
+    url: 'clave\.gob\.es'
+    etiquetas: ["DNIe / Certificado electrónico"]
   inicio:
-    url: "^https://rec\\.redsara\\.es/"
-    etiquetas: ["Registro Electrónico Común"]
-  clave:                                   # pasarela Cl@ve
-    url: "clave\\.gob\\.es|pasarela"       # TODO: confirmar con la captura
-    etiquetas: ["Cl@ve"]                   # TODO
-  modo_presentacion:                       # interesado o representante
-    url: "^https://rec\\.redsara\\.es/"    # TODO
-    etiquetas: ["TODO: texto de la pantalla de elección interesado/representante"]
-  formulario:
-    url: "^https://rec\\.redsara\\.es/"    # TODO
-    etiquetas: ["TODO: Asunto", "TODO: Expone", "TODO: Solicita"]
+    url: 'reg\.redsara\.es/es/?(\?.*)?$'
+    etiquetas: ["Destacados"]
+  paso1:
+    url: 'reg\.redsara\.es/es/nuevo-registro'
+    etiquetas: ["Datos del solicitante (Paso 1 de 4)"]
+  paso2:
+    url: 'reg\.redsara\.es/es/nuevo-registro'
+    etiquetas: ["Datos de solicitud (Paso 2 de 4)"]
+  paso3:
+    url: 'reg\.redsara\.es/es/nuevo-registro'
+    etiquetas: ["Documentación (Paso 3 de 4)"]
   resumen:
-    url: "^https://rec\\.redsara\\.es/"    # TODO
-    etiquetas: ["TODO: texto que solo aparece en el resumen previo a la firma"]
+    url: 'reg\.redsara\.es/es/nuevo-registro'
+    etiquetas: ["A continuación tienes el resumen de la solicitud de registro electrónico", "Órgano destino"]
   justificante:
-    url: "^https://rec\\.redsara\\.es/"    # TODO
-    etiquetas: ["TODO: Número de registro", "TODO: Justificante"]
+    url: 'reg\.redsara\.es/es/detalle-registro/'
+    etiquetas: ["Detalle del registro", "Número de registro"]
 
-# Hasta tener el formulario abierto.
+# Abrir "Nuevo registro". Si ya hay sesión, se salta el inicio de sesión.
+# Con la política de Chrome (configurar-certificado) el certificado se elige solo.
 apertura:
-  - acciones:
-      - ir: "{url_inicio}"
-  - si_pantalla: inicio
+  - &ir_nuevo
     acciones:
-      - clic: "TODO: botón para acceder al registro"
-  - si_pantalla: clave
+      - ir: "https://reg.redsara.es/es/nuevo-registro"
+  - &login
+    si_pantalla: login
     acciones:
-      - clic: "TODO: opción Certificado electrónico / DNIe"
-  # La primera vez la persona elige el certificado en el diálogo de Windows.
-  - si_pantalla: clave
-    esperar_pantalla: modo_presentacion
-    timeout_seg: 300
-    mensaje: "Elige el certificado en la ventana de Windows (el bot espera)"
-  - si_pantalla: modo_presentacion
+      - clic: 'text=Accede con tu Cl@ve'
+  - &clave
+    si_pantalla: clave
     acciones:
-      # sociedad -> representante; autónomo -> interesado
-      - clic: "TODO: opción representante (o interesado)"
-  - pantalla: formulario
+      - clic: 'button.idp-button:has-text("Certificado electrónico")'
+      - esperar: 6
+  - &tras_login
+    si_pantalla: inicio
+    acciones:
+      - ir: "https://reg.redsara.es/es/nuevo-registro"
+  - &en_paso1
+    esperar_pantalla: paso1
+    timeout_seg: 120
+    mensaje: "Abriendo el formulario del REG (iniciando sesión si hace falta)"
 
-# Datos del interesado, contenido, destinatario y adjuntos, hasta el resumen.
 rellenado:
-  - pantalla: formulario
+  # Paso 1: representante (titular del certificado) e interesado (la sociedad)
+  - &paso1
+    pantalla: paso1
     acciones:
-      # Datos que no vienen del certificado:
-      - rellenar: {selector: "TODO: campo email", valor: "{email}"}
-      - rellenar: {selector: "TODO: campo teléfono", valor: "{telefono}"}
-      # Contenido:
-      - rellenar: {selector: "TODO: campo asunto", valor: "{asunto}"}
-      - rellenar: {selector: "TODO: campo expone", valor: "{expone}"}
-      - rellenar: {selector: "TODO: campo solicita", valor: "{solicita}"}
-      # Destinatario (sección 'destinatario' más abajo):
+      - clic: 'dnt-radio-group[formcontrolname="typeRepresented"] >> text=Representante'
+      - esperar: 1
+      - elegir: {selector: 'dnt-select[id="represented.streetType"] [role="combobox"]', valor: "{via_tipo}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="streetName"] >> nth=0 >> input', valor: "{via_nombre}"}
+      - elegir: {selector: 'dnt-select[id="represented.province"] [role="combobox"]', valor: "{provincia}"}
+      - esperar: 1
+      - elegir: {selector: 'dnt-select[id="represented.city"] [role="combobox"]', valor: "{poblacion}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="zipCode"] >> nth=0 >> input', valor: "{cp}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="phone"] >> nth=0 >> input', valor: "{telefono}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="email"] >> nth=0 >> input', valor: "{email}"}
+      - elegir: {selector: 'dnt-select[id="tipoDoc"] [role="combobox"]', valor: "CIF"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="docNumber"] input', valor: "{cif}"}
+      - esperar: 1
+      - rellenar: {selector: 'dnt-input[formcontrolname="businessName"] input', valor: "{razon_social}"}
+      - elegir: {selector: 'dnt-select[id="streetType"] [role="combobox"]', valor: "{via_tipo}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="streetName"] >> nth=1 >> input', valor: "{via_nombre}"}
+      - elegir: {selector: 'dnt-select[id="interested.province"] [role="combobox"]', valor: "{provincia}"}
+      - esperar: 1
+      - elegir: {selector: 'dnt-select[id="interested.city"] [role="combobox"]', valor: "{poblacion}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="zipCode"] >> nth=1 >> input', valor: "{cp}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="phone"] >> nth=1 >> input', valor: "{telefono}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="email"] >> nth=1 >> input', valor: "{email}"}
+      - marcar:
+          selector: 'dnt-checkbox[formcontrolname="emailAlert"] input[type="checkbox"]'
+          clic: 'dnt-checkbox[formcontrolname="emailAlert"] label'
+      - clic: 'role=button[name="Siguiente"][disabled=false]'
+  # Paso 2: organismo destinatario y textos
+  - pantalla: paso2
+    acciones:
       - elegir_destinatario: true
-      # Adjuntos:
-      - adjuntar: {selector: "TODO: input[type=file]", archivo: carta}
-      - adjuntar: {selector: "TODO: input[type=file]", archivo: dossier}
-      - clic: "TODO: botón Continuar / Siguiente"
+      - rellenar: {selector: 'dnt-input[formcontrolname="subject"] input', valor: "{asunto}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="exposes"] textarea', valor: "{expone}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="solicit"] textarea', valor: "{solicita}"}
+      - clic: 'role=button[name="Siguiente"][disabled=false]'
+  # Paso 3: documentación
+  - pantalla: paso3
+    acciones:
+      - adjuntar: {selector: '#attachments', archivo: carta}
+      - esperar: 3
+      - adjuntar: {selector: '#attachments', archivo: dossier}
+      - esperar: 4
+      - clic: 'role=button[name="Siguiente"][disabled=false]'
   - pantalla: resumen
 
-# Buscador de destinatarios: se busca por el código DIR3 del ayuntamiento y se
-# elige Fiestas/Festejos/Festes, si no Cultura, si no el ayuntamiento.
+# Buscador de organismos: se busca por código DIR3 (primero la unidad de la hoja,
+# Fiestas/Cultura si existe; si no aparece, el ayuntamiento) y se pulsa "Seleccionar"
+# solo si hay un único resultado con ese código.
 destinatario:
-  pantalla: formulario
+  modo: codigo
   abrir:
-    - clic: "TODO: botón para abrir el buscador de organismos"
-  campo_busqueda: "TODO: campo de búsqueda por código"
-  boton_buscar: "TODO: botón Buscar"
-  filas_resultado: "TODO: filas de la tabla de resultados (p. ej. table#resultados tbody tr)"
-  # codigo_en_fila: "td:nth-child(1)"   # si no se indica, se busca un código DIR3 en el texto de la fila
-  # nombre_en_fila: "td:nth-child(2)"
-  # seleccionar_en_fila: "button"      # si no se indica, se pulsa la fila
-  despues: []                          # p. ej. pulsar "Aceptar" tras elegir
-  cerrar: []                           # para la detección: cerrar el buscador sin elegir
+    - clic: 'role=button[name="Asistente de búsqueda"]'
+  filtros:
+    - {selector: 'dnt-select[id="administrationLevel"] [role="combobox"]', valor: "Administración Local"}
+  campo_busqueda: 'dnt-input[formcontrolname="search"] input'
+  boton_buscar: 'role=button[name="Buscar"]'
+  boton_seleccionar: 'role=button[name="Seleccionar"]'
+  espera_resultados_seg: 1
+  confirmacion: 'dnt-select[id="destinationOrganism"]'
+  cerrar:
+    - pulsar: {selector: 'dnt-input[formcontrolname="search"] input', tecla: "Escape"}
 
-# Lectura del resumen para la verificación previa a la firma.
+# Lectura del resumen para la verificación previa a la firma
 resumen:
   pantalla: resumen
-  campos:
-    destinatario_codigo: "TODO: elemento con el código DIR3 del destinatario"
-    destinatario_nombre: "TODO: elemento con el nombre del destinatario"
-    asunto: "TODO: elemento con el asunto"
-  adjuntos: "TODO: un elemento por adjunto (nombre del archivo)"
-  cancelar: []                         # modo prueba: cómo abandonar el borrador (puede quedar vacío)
+  etiquetas:
+    destinatario_codigo: "Órgano destino:"
+    destinatario_nombre: "Órgano destino:"
+    asunto: "Asunto:"
+  adjuntos_regex: 'Documento PDF ([\w.\-]+\.pdf)'
+  cancelar: []
 
 firma:
   acciones:
-    - clic: "TODO: botón Firmar y enviar"
-  aceptar_dialogos: false              # true si la web pide confirmar con un diálogo del navegador
-  mensaje: "Confirma la firma en Autofirma (la ventana de Autofirma no muestra el destinatario)"
+    - marcar:
+        selector: 'dnt-checkbox[formcontrolname="checkTerms"] input[type="checkbox"]'
+        clic: 'dnt-checkbox[formcontrolname="checkTerms"] label'
+    - clic: 'role=button[name="Firmar y registrar"]'
+  pasos:
+    - si_pantalla: clave
+      acciones:
+        - clic: 'button.idp-button:has-text("Certificado electrónico")'
+  aceptar_dialogos: false
+  mensaje: "Firmando con Cl@ve y el certificado (sin intervención)"
 
 justificante:
   pantalla: justificante
-  campos:
-    num_registro: "TODO: elemento con el número de registro"
-    fecha: "TODO: elemento con la fecha y hora de registro"
-  # regex_num_registro: "(REGAGE\\S+)"  # opcional, para extraer el número de un texto más largo
-  descargar: "TODO: enlace o botón de descarga del justificante PDF"
+  etiquetas:
+    num_registro: "Número de registro:"
+    fecha: "Fecha de registro:"
+  regex_num_registro: '([A-Z]{3,}\w+)'
+  descargar: 'role=button[name="Descargar justificante"]'
 
-# Fase 2: llevar el navegador hasta el buscador de destinatarios sin enviar nada.
+# Fase 2: llegar al buscador de organismos (paso 2) sin enviar nada
 deteccion:
-  - acciones:
-      - ir: "{url_inicio}"
-  - si_pantalla: inicio
-    acciones:
-      - clic: "TODO: botón para acceder al registro"
-  - si_pantalla: clave
-    acciones:
-      - clic: "TODO: opción Certificado electrónico / DNIe"
-  - si_pantalla: clave
-    esperar_pantalla: modo_presentacion
-    timeout_seg: 300
-    mensaje: "Elige el certificado en la ventana de Windows (el bot espera)"
-  - si_pantalla: modo_presentacion
-    acciones:
-      - clic: "TODO: opción representante (o interesado)"
-  - pantalla: formulario
+  - *ir_nuevo
+  - *login
+  - *clave
+  - *tras_login
+  - *en_paso1
+  - *paso1
+  - pantalla: paso2

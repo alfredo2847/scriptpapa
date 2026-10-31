@@ -94,6 +94,7 @@ class Adaptador:
         cfg = self.flujo.seccion("justificante")
         self.motor.exigir(cfg["pantalla"])
         campos = self.motor.leer_campos(cfg.get("campos"))
+        campos.update(self.motor.leer_por_etiquetas(cfg.get("etiquetas")))
         numero = campos.get("num_registro", "")
         if cfg.get("regex_num_registro"):
             m = re.search(cfg["regex_num_registro"], numero)

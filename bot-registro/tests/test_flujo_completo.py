@@ -53,7 +53,8 @@ def proyecto(tmp_path_factory, servidor):
     config = yaml.safe_load((PROYECTO / "config.yaml").read_text(encoding="utf-8"))
     config["interesado"] = {"tipo": "sociedad", "razon_social": "Paellas Prueba SL", "cif": "B00000000",
                             "direccion": "Calle Mayor 1, Valencia", "email": "prueba@example.com",
-                            "telefono": "600000000"}
+                            "telefono": "600000000", "via_tipo": "Calle", "via_nombre": "Mayor 1",
+                            "provincia": "València/Valencia", "poblacion": "València", "cp": "46001"}
     config["textos"]["expone"] = "Que Paellas Prueba SL elabora paellas para eventos."
     config["ejecucion"].update(pausa_entre_envios_seg=[0, 0], espera_firma_seg=5,
                                timeout_pantalla_seg=5, timeout_accion_seg=5)

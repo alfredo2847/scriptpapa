@@ -47,6 +47,7 @@ ACCIONES = {
     "esperar",              # esperar: 2 (segundos)
     "esperar_selector",     # esperar_selector: "selector"
     "elegir_destinatario",  # elegir_destinatario: true (usa la sección destinatario)
+    "elegir",               # elegir: {selector: "...", valor: "..."} (desplegable propio: abre y pulsa la opción)
 }
 
 
@@ -343,7 +344,18 @@ class Motor:
             except Exception:
                 campo.select_option(value=valor, timeout=timeout)
         elif nombre == "marcar":
-            self.localizar(arg).check(timeout=timeout)
+            if isinstance(arg, dict):
+                # casilla propia: se lee el <input> y, si no está marcada, se pulsa el elemento visible
+                casilla = self.pagina.locator(arg["selector"]).first
+                if not casilla.is_checked():
+                    self.localizar(arg["clic"]).click(timeout=timeout)
+                    self._pausa(0.3)
+                if not casilla.is_checked():
+                    raise ErrorAyuntamiento(f"La casilla {arg['selector']!r} no queda marcada")
+            else:
+                self.localizar(arg).check(timeout=timeout)
+        elif nombre == "elegir":
+            self.elegir_opcion(arg["selector"], self._valor(arg["valor"]))
         elif nombre == "adjuntar":
             adjuntos: dict = self.contexto["adjuntos"]
             clave = arg.get("archivo", "todos")
@@ -369,7 +381,77 @@ class Motor:
         else:  # validado al cargar la huella
             raise HuellaInvalida(f"Acción desconocida {nombre}")
 
+    # -- desplegables propios ------------------------------------------------
+    def elegir_opcion(self, selector: str, valor: str) -> None:
+        """Abre un desplegable (combobox) y pulsa la opción cuyo texto es exactamente `valor`."""
+        objetivo = normalizar(valor)
+        self.localizar(selector).click(timeout=self.timeout_accion)
+        limite = time.monotonic() + self.timeout_accion / 1000
+        while True:
+            opciones = self.pagina.locator('[role="option"]:visible, dnt-option:visible')
+            textos = []
+            for i in range(opciones.count()):
+                opcion = opciones.nth(i)
+                try:
+                    texto = opcion.inner_text(timeout=1000)
+                except Exception:
+                    continue
+                textos.append(texto.strip())
+                if normalizar(texto) == objetivo:
+                    opcion.click(timeout=self.timeout_accion)
+                    self._pausa(0.5)
+                    return
+            if time.monotonic() >= limite:
+                muestra = ", ".join(t for t in textos[:12] if t)
+                raise ErrorAyuntamiento(f"No aparece la opción {valor!r} en {selector!r} (hay: {muestra or 'ninguna'})")
+            self._pausa(0.5)
+
+    def leer_por_etiquetas(self, etiquetas: dict) -> dict:
+        """Lee valores 'Etiqueta:' seguidos de su valor en la línea siguiente del texto de la página."""
+        lineas = [l.strip() for l in self._texto().splitlines() if l.strip()]
+        leido = {}
+        for nombre, etiqueta in (etiquetas or {}).items():
+            objetivo = normalizar(etiqueta)
+            for i, linea in enumerate(lineas):
+                if normalizar(linea) == objetivo and i + 1 < len(lineas):
+                    leido[nombre] = lineas[i + 1]
+                    break
+            else:
+                raise ErrorAyuntamiento(f"No se encuentra la etiqueta {etiqueta!r} en la pantalla")
+        return leido
+
     # -- destinatario --------------------------------------------------------
+    def buscar_por_codigo(self, codigo: str) -> bool:
+        """Buscador del REG: busca un código DIR3 y, si hay un único resultado con ese código, lo selecciona.
+
+        Devuelve False si el código no aparece (sin tocar nada); lanza ErrorAyuntamiento si es ambiguo.
+        """
+        cfg = self.flujo.seccion("destinatario")
+        self.ejecutar_acciones(cfg.get("abrir"))
+        for paso in cfg.get("filtros") or []:
+            self.elegir_opcion(paso["selector"], self._valor(paso["valor"]))
+        campo = self.localizar(cfg["campo_busqueda"])
+        campo.fill(codigo)
+        self.localizar(cfg["boton_buscar"]).click()
+        botones = self.pagina.locator(cfg["boton_seleccionar"])
+        limite = time.monotonic() + self.timeout_accion / 1000
+        while botones.count() == 0 and time.monotonic() < limite:
+            self._pausa(0.5)
+        self._pausa(float(cfg.get("espera_resultados_seg", 1)))
+        texto = self._texto()
+        if botones.count() == 0 or f"{codigo} -" not in texto:
+            self.ejecutar_acciones(cfg.get("cerrar"))
+            return False
+        if botones.count() != 1:
+            raise ErrorAyuntamiento(f"La búsqueda de {codigo} devuelve {botones.count()} resultados; se esperaba 1")
+        botones.first.click()
+        self._pausa(1)
+        if cfg.get("confirmacion"):
+            elegido = self.pagina.locator(cfg["confirmacion"]).first.inner_text()
+            if codigo not in elegido:
+                raise ErrorAyuntamiento(f"El organismo seleccionado no es {codigo}: {elegido[:120]!r}")
+        return True
+
     def buscar_destinatario(self, codigo: str) -> list[dict]:
         """Busca un código DIR3 en el buscador de destinatarios y lee los resultados.
 
@@ -417,6 +499,19 @@ class Motor:
         from comun import elegir_unidad
 
         cfg = self.flujo.seccion("destinatario")
+        if cfg.get("modo") == "codigo":
+            # REG: se busca el código de la unidad elegida en la hoja (Fiestas/Cultura si existe)
+            # y, si no está disponible, el del ayuntamiento.
+            dir3_ayto = self.contexto["dir3_ayto"]
+            candidatos = [self.contexto.get("dir3_destino") or dir3_ayto, dir3_ayto]
+            for codigo in dict.fromkeys(candidatos):
+                if self.buscar_por_codigo(codigo):
+                    nombre = self.contexto.get("nombre_destino") if codigo != dir3_ayto else self.contexto.get("nombre_ayto")
+                    self.contexto["dir3_destino"], self.contexto["nombre_destino"] = codigo, nombre or ""
+                    self.ejecutar_acciones(cfg.get("despues"))
+                    self.log.info(f"    destinatario elegido: {codigo} {nombre or ''}")
+                    return codigo, nombre or ""
+            raise ErrorAyuntamiento(f"El buscador de organismos no encuentra {dir3_ayto}")
         dir3_ayto = self.contexto["dir3_ayto"]
         validos = set(self.contexto.get("codigos_validos") or {dir3_ayto})
         resultados = self.buscar_destinatario(dir3_ayto)
@@ -453,8 +548,11 @@ class Motor:
         cfg = self.flujo.seccion("resumen")
         self.exigir(cfg["pantalla"])
         leido = self.leer_campos(cfg.get("campos"))
+        leido.update(self.leer_por_etiquetas(cfg.get("etiquetas")))
         if cfg.get("adjuntos"):
             leido["adjuntos"] = [t.strip() for t in self.pagina.locator(cfg["adjuntos"]).all_inner_texts() if t.strip()]
+        if cfg.get("adjuntos_regex"):
+            leido["adjuntos"] = list(dict.fromkeys(re.findall(cfg["adjuntos_regex"], self._texto())))
         leido["url"] = self.pagina.url
         return leido
 
