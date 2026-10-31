@@ -53,8 +53,7 @@ class DetectorREC:
             if (self.flujo.datos.get("destinatario") or {}).get("modo") == "codigo":
                 encontrado = self.motor.buscar_por_codigo(dir3_ayto)
                 resultados = [{"codigo": dir3_ayto, "nombre": "", "fila": None}] if encontrado else []
-                if encontrado:
-                    self.preparar()  # el organismo queda elegido: se vuelve a un formulario limpio
+                # Si se encontró, queda seleccionado; la siguiente búsqueda lo sustituye.
                 return encontrado, [{"codigo": r["codigo"], "nombre": r["nombre"]} for r in resultados]
             resultados = self.motor.buscar_destinatario(dir3_ayto)
             encontrado = any(r["codigo"] == dir3_ayto for r in resultados)
