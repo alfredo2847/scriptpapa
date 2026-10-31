@@ -58,13 +58,14 @@
   .paellera::after  { right: -11%; }
 
   /* 1. Portada */
-  .portada .texto { position: absolute; left: 18mm; top: 18mm; bottom: 16mm; width: 112mm;
+  .portada .texto { position: absolute; left: 18mm; top: 16mm; bottom: 16mm; width: 118mm;
     display: flex; flex-direction: column; }
-  .portada h1 { margin-top: 30mm; }
+  .portada .firma { display: flex; align-items: center; gap: 4mm; }
+  .portada .firma img { width: 30mm; height: auto; }
+  .portada h1 { margin-top: 16mm; }
+  .portada .foto-portada { position: absolute; right: 0; top: 0; width: 142mm; height: 210mm; }
   .portada .lema { margin-top: 8mm; font-size: 15pt; line-height: 1.4; max-width: 105mm; }
   .portada .pie { margin-top: auto; font-size: 10pt; line-height: 1.55; }
-  .portada .paellera { width: 196mm; height: 196mm; right: -52mm; top: 7mm; overflow: visible; }
-  .portada .paellera .foto { border-radius: 50%; }
 
   /* Página con foto a media página */
   .partida { display: grid; grid-template-columns: 1fr 1fr; }
@@ -126,6 +127,8 @@
   .contacto { margin-top: auto; border-top: 1.2mm solid var(--hierro); padding-top: 5mm;
     font-size: 10.5pt; line-height: 1.55; }
   .contacto .nombre { font-weight: 800; font-size: 13pt; }
+  .contacto { display: grid; grid-template-columns: 1fr 22mm; column-gap: 6mm; align-items: end; }
+  .contacto img { width: 22mm; height: auto; }
 </style>
 </head>
 <body>
@@ -133,7 +136,7 @@
 <!-- 1. Portada -->
 <section class="pagina portada">
   <div class="texto">
-    <div class="marca">Abundi Monterde</div>
+    <div class="firma"><img src="fotos/logo.png" alt="Logotipo de Abundi Monterde"><div class="marca">Abundi Monterde</div></div>
     <h1>Paellas gigantes para las fiestas de su pueblo</h1>
     <p class="lema">De 100 a 10.000 raciones, cocinadas en la plaza, delante de los vecinos.</p>
     <div class="pie">
@@ -141,7 +144,7 @@
       <span class="suave">630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com &nbsp;&nbsp; abundimonterde.es</span>
     </div>
   </div>
-  <div class="paellera"><img class="foto" src="fotos/valenciana_arriba.jpg" alt="Paella valenciana vista desde arriba"></div>
+  <img class="foto foto-portada" src="fotos/fila_paellas_calle.jpg" alt="Fila de paellas gigantes en una calle durante una fiesta, con la carpa de Abundi Monterde" style="object-position: 30% center">
 </section>
 
 <!-- 2. Quiénes somos -->
@@ -189,7 +192,7 @@
     </div>
     <div class="miniatura"><img class="foto" src="fotos/torredembarra.jpg" alt="Equipo y organizadores con una paella de marisco en Torredembarra"></div>
   </div>
-  <img class="foto" src="fotos/fila_paellas_calle.jpg" alt="Fila de paellas gigantes en una calle durante una fiesta">
+  <img class="foto" src="fotos/fuego_plaza.jpg" alt="Paelleras al fuego de leña en una plaza">
 </section>
 
 <!-- 5. Calidad -->
@@ -205,7 +208,7 @@
 
 <!-- 6. Presupuesto y contacto -->
 <section class="pagina partida">
-  <img class="foto" src="fotos/fuego_plaza.jpg" alt="Paelleras al fuego de leña en una plaza">
+  <img class="foto" src="fotos/paella_vecinos.jpg" alt="Paella gigante al aire libre con vecinos alrededor" style="object-position: 45% center">
   <div class="contenido">
     <h2>Pídanos presupuesto sin compromiso</h2>
     <div class="precio">
@@ -218,11 +221,14 @@
       <li>Contratación y facturación con una empresa con sede en València</li>
     </ul>
     <div class="contacto">
-      <div class="nombre">Guillermo Crespo Bejarano</div>
-      Administrador de Filencia S.L.<br>
-      C. Padre Viñas, 24, 46019 València<br>
-      Tel. 630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com<br>
-      <span class="suave">abundimonterde.es &nbsp;&nbsp; Instagram @abundi_monterde</span>
+      <div>
+        <div class="nombre">Guillermo Crespo Bejarano</div>
+        Administrador de Filencia S.L.<br>
+        C. Padre Viñas, 24, 46019 València<br>
+        Tel. 630 907 468 &nbsp;&nbsp; crespob.guillermo@gmail.com<br>
+        <span class="suave">abundimonterde.es &nbsp;&nbsp; Instagram @abundi_monterde</span>
+      </div>
+      <img src="fotos/logo.png" alt="Logotipo de Abundi Monterde">
     </div>
   </div>
 </section>
