@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Carta de presentación – Filencia S.L. / Abundi Monterde</title>
+<style>
+  @page { size: 210mm 297mm; margin: 0; }
+  :root {
+    --hierro: #201c19;
+    --azafran: #f6c454;
+    --asa: #c23a2b;
+    --gris: #5d554d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", "Liberation Sans", sans-serif;
+    color: var(--hierro); font-size: 10.6pt; line-height: 1.52;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .hoja { width: 210mm; height: 297mm; position: relative; overflow: hidden; padding: 16mm 22mm 14mm 22mm;
+    display: flex; flex-direction: column; }
+
+  /* Membrete */
+  .membrete { display: grid; grid-template-columns: 24mm 1fr auto; column-gap: 5mm; align-items: center;
+    padding-bottom: 5mm; border-bottom: 1.2mm solid var(--azafran); }
+  .membrete img { width: 24mm; height: auto; }
+  .empresa { font-family: "Inter Display", "Inter", sans-serif; font-weight: 900; font-size: 15pt;
+    letter-spacing: -0.01em; line-height: 1.1; }
+  .empresa span { display: block; font-family: "Inter", sans-serif; font-weight: 500; font-size: 9pt;
+    letter-spacing: 0; color: var(--gris); margin-top: 1mm; }
+  .datos { font-size: 8.6pt; line-height: 1.5; text-align: right; color: var(--gris); }
+  .datos b { color: var(--hierro); font-weight: 600; }
+
+  .destinatario { margin-top: 11mm; font-weight: 600; }
+  .asunto { margin-top: 7mm; font-family: "Inter Display", "Inter", sans-serif; font-weight: 800; font-size: 12pt; }
+
+  .cuerpo { margin-top: 6mm; }
+  .cuerpo p + p { margin-top: 3.2mm; }
+  .cuerpo b { font-weight: 700; }
+
+  .firma { margin-top: 8mm; }
+  .firma .nombre { margin-top: 12mm; font-weight: 800; }
+
+  .pie { margin-top: auto; padding-top: 4mm; border-top: 0.3mm solid #d9d5d0; font-size: 8.6pt; color: var(--gris);
+    display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+  <header class="membrete">
+    <img src="fotos/logo.png" alt="Logotipo de Abundi Monterde">
+    <div class="empresa">Filencia S.L.
+      <span>Delegación de Abundi Monterde<br>en la Comunitat Valenciana<br>Paellas gigantes para fiestas y eventos populares</span>
+    </div>
+    <div class="datos">
+      C. Padre Viñas, 24<br>
+      46019 València<br>
+      <b>630 907 468</b><br>
+      crespob.guillermo@gmail.com
+    </div>
+  </header>
+
+  <p class="destinatario">A la atención del Sr./Sra. Alcalde/sa<br>y del Concejal/a de Fiestas</p>
+
+  <p class="asunto">Asunto: Propuesta de paellas gigantes para las fiestas de su municipio</p>
+
+  <div class="cuerpo">
+    <p>Estimado/a señor/a:</p>
+    <p>Me dirijo a ustedes en nombre de Filencia S.L., delegación en la Comunitat Valenciana de Abundi Monterde, con <b>30 años de experiencia cocinando paellas gigantes</b> para fiestas y eventos populares.</p>
+    <p>Nos adaptamos al tamaño de cada fiesta: <b>desde una comida popular de 100 o 200 personas hasta 10.000 comensales</b> en un mismo evento. Hemos trabajado en València, Paiporta, Albal y decenas de municipios de la Comunitat Valenciana, y también en Barcelona, Madrid, Córdoba y Andorra la Vella. Durante la DANA colaboramos de forma altruista con la ONG <b>World Central Kitchen</b>, cocinando <b>3.000 raciones diarias</b> en los pueblos afectados.</p>
+    <p>Lo que nos distingue es la calidad: ingredientes frescos, en la cantidad que pide una buena paella, y una elaboración cuidada de principio a fin. Así, el ayuntamiento que nos contrata tiene la tranquilidad de que sus vecinos y vecinas quedarán plenamente satisfechos con la paella que se sirva.</p>
+    <p>Contamos con registro sanitario y seguro de responsabilidad civil, y el precio parte de <b>5 € por ración</b> (IVA no incluido), según el número de raciones. La contratación y la facturación se realizan con nuestra sociedad, con sede en Valencia.</p>
+    <p>Les adjunto nuestro dossier, y pueden ver nuestro trabajo en abundimonterde.es y en Instagram (@abundi_monterde). Será un placer prepararles un <b>presupuesto sin compromiso</b> para sus próximas fiestas.</p>
+    <p>Para cualquier consulta, pueden contactar directamente conmigo en el <b>630 907 468</b> o en crespob.guillermo@gmail.com.</p>
+  </div>
+
+  <div class="firma">
+    <p>Atentamente,</p>
+    <p class="nombre">Guillermo Crespo Bejarano</p>
+    <p>Administrador<br>Filencia S.L.</p>
+  </div>
+
+  <footer class="pie">
+    <span>Filencia S.L. &nbsp; CIF B97093710</span>
+    <span>abundimonterde.es &nbsp;&nbsp; Instagram @abundi_monterde</span>
+  </footer>
+
+</div>
+</body>
+</html>
