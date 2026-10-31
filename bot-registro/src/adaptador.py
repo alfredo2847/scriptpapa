@@ -82,6 +82,7 @@ class Adaptador:
         self.motor.aceptar_dialogos = bool(firma.get("aceptar_dialogos"))
         try:
             self.motor.ejecutar_acciones(firma["acciones"])
+            self.motor.ejecutar_pasos(firma.get("pasos"))
             self.log.info(f"    >>> {firma.get('mensaje', 'Confirma la firma en Autofirma')} "
                           f"(espera máxima {int(segundos)} s)")
             return self.motor._esperar_coincidencia(justificante["pantalla"], segundos)

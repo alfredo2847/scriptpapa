@@ -58,6 +58,18 @@ def cmd_grabar(args, config, log):
     grabador.ejecutar(config, log, url=args.url)
 
 
+def cmd_analizar(args, config, log):
+    import analizar_capturas
+
+    analizar_capturas.ejecutar(config, log, carpeta=args.carpeta)
+
+
+def cmd_certificado(args, config, log):
+    import configurar_certificado
+
+    configurar_certificado.ejecutar(config, log, quitar=args.quitar)
+
+
 def cmd_marcar(args, config, log):
     hoja = HojaControl()
     fila = hoja.get(args.dir3)
@@ -125,6 +137,14 @@ def construir_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("grabar", help="capturar un envío manual de referencia para escribir las huellas")
     s.add_argument("--url", help="página de inicio (por defecto la del REC)")
     s.set_defaults(func=cmd_grabar)
+
+    s = sub.add_parser("analizar-capturas", help="resumir campos y botones de las capturas de referencia")
+    s.add_argument("--carpeta", help="carpeta capturas/referencia_<fecha> (por defecto la última)")
+    s.set_defaults(func=cmd_analizar)
+
+    s = sub.add_parser("configurar-certificado", help="que Chrome elija solo el certificado en Cl@ve y el REG")
+    s.add_argument("--quitar", action="store_true", help="desactivar la selección automática")
+    s.set_defaults(func=cmd_certificado)
 
     s = sub.add_parser("marcar", help="anotar a mano el resultado de un ayuntamiento")
     s.add_argument("dir3")

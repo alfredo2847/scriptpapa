@@ -122,6 +122,7 @@ class Flujo:
                 raise HuellaInvalida(f"{self.ruta.name}: la pantalla '{nombre}' necesita url, titulo o etiquetas")
         for seccion in ("apertura", "rellenado", "deteccion"):
             self._validar_pasos(self.datos.get(seccion), seccion)
+        self._validar_pasos((self.datos.get("firma") or {}).get("pasos"), "firma.pasos")
         destinatario = self.datos.get("destinatario") or {}
         for clave in ("abrir", "despues", "cerrar"):
             self._validar_acciones(destinatario.get(clave), f"destinatario.{clave}")

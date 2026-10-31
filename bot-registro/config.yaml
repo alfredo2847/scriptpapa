@@ -34,7 +34,7 @@ ejecucion:
   max_por_tanda: 5
   espera_firma_seg: 300
   pausa_entre_envios_seg: [20, 45]
-  confirmar_por_consola: true
+  confirmar_por_consola: false   # firma automática autorizada por el titular (01/11/2026); true = pedir s/n
   max_errores_seguidos: 3      # con N errores seguidos se para la tanda
   timeout_pantalla_seg: 20     # espera máxima a que una pantalla coincida con su huella
   timeout_accion_seg: 15       # espera máxima a que aparezca un botón o campo
