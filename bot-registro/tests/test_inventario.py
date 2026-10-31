@@ -64,5 +64,11 @@ def test_homonimos():
         {"codigo": "L01460076", "nombre": "Ayuntamiento de Albal", "tipo": "AY"},
         {"codigo": "LA0000001", "nombre": "Ayuntamiento de Albal", "tipo": "AY"},  # no es un L01
     ]
-    homonimos = buscar_homonimos(unidades[:1] + unidades[2:3], unidades)
-    assert homonimos == {"L01460193": ["Alcúdia (L01070034)"]}
+    unidades.append({"codigo": "L01460207", "nombre": "Ayuntamiento de Alcúdia de Crespins, L'", "tipo": "AY"})
+    unidades.append({"codigo": "L01120402", "nombre": "Ajuntament de Castelló de la Plana", "tipo": "AY"})
+    unidades.append({"codigo": "L01460839", "nombre": "Ajuntament de Castelló", "tipo": "AY"})
+    homonimos = buscar_homonimos([unidades[0], unidades[2], unidades[6]], unidades)
+    assert homonimos == {
+        "L01460193": ["Alcúdia (L01070034)", "Alcúdia de Crespins, L' (L01460207)"],
+        "L01460839": ["Castelló de la Plana (L01120402)"],
+    }

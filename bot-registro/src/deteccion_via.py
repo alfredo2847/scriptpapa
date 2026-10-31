@@ -18,7 +18,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urljoin, urlparse
 
-from comun import ahora_texto, contiene_municipio, slugs_municipio
+from comun import PATRON_AYTO_VALENCIA, ahora_texto, contiene_municipio, slugs_municipio, variantes_municipio
 from hoja import ERROR, PENDIENTE, PRUEBA_OK, VIA_MANUAL, VIA_REC, HojaControl
 from sedes.base import cargar_plataformas, identificar_plataforma
 
@@ -70,6 +70,11 @@ def _enlaces_sede(url_base: str, html: str) -> list[str]:
     return list(dict.fromkeys(enlaces))[:5]
 
 
+def texto_visible(html: str) -> str:
+    sin_scripts = re.sub(r"<(script|style)\b.*?</\1>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+    return html_lib.unescape(re.sub(r"<[^>]+>", " ", sin_scripts))
+
+
 def menciona_municipio(html: str, municipio: str) -> bool:
     """La página habla de ese municipio (título o texto visible).
 
@@ -77,20 +82,16 @@ def menciona_municipio(html: str, municipio: str) -> bool:
     (p. ej. pueblo-inventado.sedelectronica.es); sin el nombre del municipio no
     se puede saber si la sede es suya.
     """
-    sin_scripts = re.sub(r"<(script|style)\b.*?</\1>", " ", html, flags=re.IGNORECASE | re.DOTALL)
-    texto = html_lib.unescape(re.sub(r"<[^>]+>", " ", sin_scripts))
-    return contiene_municipio(texto, municipio)
+    return contiene_municipio(texto_visible(html), municipio)
 
 
 def es_de_valencia(html: str, nif: str = "") -> bool:
     """La página es de un ayuntamiento de la provincia de Valencia.
 
-    Evita confundir municipios homónimos de otras provincias (l'Alcúdia y
-    Alcúdia de Mallorca): se exige el NIF del ayuntamiento, un código postal
-    46xxx o la provincia entre paréntesis.
+    Se exige el NIF del ayuntamiento, un código postal 46xxx o la provincia
+    entre paréntesis.
     """
-    sin_scripts = re.sub(r"<(script|style)\b.*?</\1>", " ", html, flags=re.IGNORECASE | re.DOTALL)
-    texto = html_lib.unescape(re.sub(r"<[^>]+>", " ", sin_scripts))
+    texto = texto_visible(html)
     if nif and nif.upper() in texto.upper().replace("-", ""):
         return True
     if re.search(r"(?<!\d)46\d{3}(?!\d)", texto):
@@ -98,12 +99,38 @@ def es_de_valencia(html: str, nif: str = "") -> bool:
     return bool(re.search(r"\((val[eè]ncia|valencia/val[eè]ncia|val[eè]ncia/valencia)\)", texto, re.IGNORECASE))
 
 
+def leer_homonimos(texto: str) -> list[tuple[str, str]]:
+    """'Alcúdia (L01070034); Alcúdia de Crespins (L01460207)' -> [(nombre, código), ...]."""
+    return re.findall(r"\s*(.+?) \((L\w+)\)(?:;|$)", texto or "")
+
+
+def es_sede_de(html: str, municipio: str, nif: str = "", homonimos: list[tuple[str, str]] = ()) -> bool:
+    """La página es la del ayuntamiento de `municipio` y no la de un homónimo.
+
+    - Tiene que nombrar al municipio.
+    - Si nombra a un ayuntamiento de nombre más largo que lo contiene
+      (Castelló de la Plana para Castelló), se descarta.
+    - Si hay un ayuntamiento con el mismo nombre fuera de Valencia, la página
+      tiene que demostrar que es de la provincia (NIF, código postal o provincia).
+    """
+    texto = texto_visible(html)
+    if not contiene_municipio(texto, municipio):
+        return False
+    propias = set(variantes_municipio(municipio))
+    mismo_nombre_fuera = False
+    for nombre, codigo in homonimos:
+        if propias & set(variantes_municipio(nombre)):
+            mismo_nombre_fuera = mismo_nombre_fuera or not PATRON_AYTO_VALENCIA.match(codigo)
+        elif contiene_municipio(texto, nombre):
+            return False
+    return es_de_valencia(html, nif) if mismo_nombre_fuera else True
+
+
 def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict,
-                nif: str = "", exigir_provincia: bool = False) -> tuple[str, str]:
+                nif: str = "", homonimos: list[tuple[str, str]] = ()) -> tuple[str, str]:
     """Devuelve (url_sede, plataforma). plataforma vacía si no se reconoce; url vacía si no hay sede.
 
-    La página tiene que mencionar el municipio. Si hay un municipio con el mismo
-    nombre en otra provincia (exigir_provincia), además tiene que ser de Valencia.
+    Solo cuentan las páginas que son de ese ayuntamiento (ver es_sede_de).
     """
     import requests
 
@@ -113,9 +140,7 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
     primera_sede = ""
 
     def es_suya(html: str) -> bool:
-        if not menciona_municipio(html, municipio):
-            return False
-        return es_de_valencia(html, nif) if exigir_provincia else True
+        return es_sede_de(html, municipio, nif, homonimos)
 
     def probar(url: str) -> tuple[str, str] | None:
         nonlocal primera_sede
@@ -168,6 +193,9 @@ def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = 
     if copia:
         log.info(f"Copia de la hoja en {copia}")
 
+    if not any(f.get("nif_ayto") for f in hoja):
+        raise SystemExit("La hoja no tiene los datos nuevos del inventario (NIF y homónimos). "
+                         "Ejecuta antes: python src/main.py inventario --archivo <DIR3>")
     filas = [f for f in hoja.ordenadas() if f.get("estado", "") in ESTADOS_A_DETECTAR]
     if solo:
         filas = [f for f in filas if f["dir3_ayto"] in solo]
@@ -187,7 +215,7 @@ def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = 
     with ThreadPoolExecutor(max_workers=int(config["deteccion"].get("hilos", 6))) as grupo:
         tareas = {
             grupo.submit(buscar_sede, f["municipio"], str(f.get("web_dir3") or ""), timeout, plataformas,
-                         str(f.get("nif_ayto") or ""), bool(f.get("homonimos"))): f
+                         str(f.get("nif_ayto") or ""), leer_homonimos(str(f.get("homonimos") or ""))): f
             for f in restantes
         }
         for tarea in as_completed(tareas):

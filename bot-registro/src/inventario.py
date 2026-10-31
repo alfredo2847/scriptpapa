@@ -331,25 +331,28 @@ PATRON_AYTO_ESPANA = re.compile(r"^L01\d{6}$")
 
 
 def buscar_homonimos(ayuntamientos: list[dict], unidades: list[dict]) -> dict[str, list[str]]:
-    """Ayuntamientos de otras provincias con el mismo nombre (l'Alcúdia / Alcúdia de Mallorca).
+    """Ayuntamientos de España cuyo nombre coincide con el de cada municipio o lo contiene.
 
-    Para esos municipios la detección de sede exige pruebas de que la página es
-    de la provincia de Valencia.
+    - Mismo nombre en otra provincia: l'Alcúdia / Alcúdia (Mallorca).
+    - Nombre más largo que lo contiene: Castelló / Castelló de la Plana, Real / el Real de Gandia.
+
+    Con ellos la detección de sede evita quedarse con la sede de otro ayuntamiento.
+    Devuelve {dir3: ["Nombre (código)", ...]}.
     """
-    por_variante: dict[str, list[str]] = {}
+    todos = []
     for u in unidades:
-        if not PATRON_AYTO_ESPANA.match(u["codigo"]) or PATRON_AYTO_VALENCIA.match(u["codigo"]):
-            continue
-        if u.get("tipo") and u["tipo"] != "AY":
+        if not PATRON_AYTO_ESPANA.match(u["codigo"]) or (u.get("tipo") and u["tipo"] != "AY"):
             continue
         nombre = municipio_desde_denominacion(u["nombre"])
-        for v in variantes_municipio(nombre):
-            por_variante.setdefault(v, []).append(f"{nombre} ({u['codigo']})")
+        todos.append((u["codigo"], nombre, [f" {v} " for v in variantes_municipio(nombre)]))
     resultado = {}
     for a in ayuntamientos:
-        otros = []
-        for v in variantes_municipio(municipio_desde_denominacion(a["nombre"])):
-            otros += por_variante.get(v, [])
+        propias = [f" {v} " for v in variantes_municipio(municipio_desde_denominacion(a["nombre"]))]
+        otros = [
+            f"{nombre} ({codigo})"
+            for codigo, nombre, variantes in todos
+            if codigo != a["codigo"] and any(p in v for p in propias for v in variantes)
+        ]
         if otros:
             resultado[a["codigo"]] = list(dict.fromkeys(otros))
     return resultado

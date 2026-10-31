@@ -40,10 +40,11 @@ def test_homonimo_de_otra_provincia(monkeypatch):
     def descarga(paginas):
         return lambda sesion, url, timeout: (url, paginas[url]) if url in paginas else None
 
+    homonimos = [("Alcúdia", "L01070034"), ("Alcúdia de Crespins, l'", "L01460207")]
     monkeypatch.setattr(deteccion_via, "_descargar", descarga({"https://alcudia.sedelectronica.es": mallorca}))
-    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS, exigir_provincia=True) == ("", "")
+    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS, homonimos=homonimos) == ("", "")
     monkeypatch.setattr(deteccion_via, "_descargar", descarga({"https://lalcudia.sedelectronica.es": valencia}))
-    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS, exigir_provincia=True)[1] == "gestiona"
+    assert buscar_sede("Alcúdia, l'", "", 1, PLATAFORMAS, homonimos=homonimos)[1] == "gestiona"
 
 
 def test_sin_homonimo_basta_el_nombre(monkeypatch):
@@ -52,7 +53,24 @@ def test_sin_homonimo_basta_el_nombre(monkeypatch):
     monkeypatch.setattr(deteccion_via, "_descargar",
                         lambda s, url, t: (url, pagina) if url == "https://agullent.sedelectronica.es" else None)
     assert buscar_sede("Agullent", "", 1, PLATAFORMAS)[1] == "gestiona"
-    assert buscar_sede("Agullent", "", 1, PLATAFORMAS, exigir_provincia=True) == ("", "")
+    assert buscar_sede("Agullent", "", 1, PLATAFORMAS, homonimos=[("Agullent", "L01990000")]) == ("", "")
+
+
+def test_nombre_contenido_en_otro_mas_largo():
+    """Castelló no se queda con la sede de Castelló de la Plana; Real no, con la de el Real de Gandia."""
+    plana = "<title>Ajuntament de Castelló de la Plana</title><p>12001 Castelló</p>"
+    castello = "<title>Ajuntament de Castelló</title><p>46270 Castelló</p>"
+    homonimos = [("Castelló de la Plana", "L01120402"), ("Castelló de Rugat", "L01460902")]
+    assert not deteccion_via.es_sede_de(plana, "Castelló", homonimos=homonimos)
+    assert deteccion_via.es_sede_de(castello, "Castelló", homonimos=homonimos)
+    gandia = "<title>Ajuntament del Real de Gandia</title>"
+    assert not deteccion_via.es_sede_de(gandia, "Real", homonimos=[("Real de Gandia, el", "L01462141")])
+
+
+def test_leer_homonimos():
+    assert deteccion_via.leer_homonimos("Alcúdia (L01070034); Alcúdia de Crespins, l' (L01460207)") == [
+        ("Alcúdia", "L01070034"), ("Alcúdia de Crespins, l'", "L01460207")]
+    assert deteccion_via.leer_homonimos("") == []
 
 
 def test_es_de_valencia():
