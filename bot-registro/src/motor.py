@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -153,7 +154,8 @@ class Navegador:
             headless=headless,
             accept_downloads=True,
             handle_sigint=False,  # Ctrl+C lo gestiona el bot para terminar el ayuntamiento en curso
-            chromium_sandbox=True,  # sin el aviso de Chrome sobre --no-sandbox
+            # En Windows, con sandbox (evita el aviso de Chrome sobre --no-sandbox).
+            chromium_sandbox=bool(nav.get("sandbox", sys.platform == "win32")),
             no_viewport=not headless,
         )
         if nav.get("canal"):
