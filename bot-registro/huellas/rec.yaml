@@ -152,7 +152,13 @@ firma:
     - marcar:
         selector: 'dnt-checkbox[formcontrolname="checkTerms"] input[type="checkbox"]'
         clic: 'dnt-checkbox[formcontrolname="checkTerms"] label'
-    - clic: 'role=button[name="Firmar y registrar"]'
+    - esperar: 1
+    - clic:
+        alternativas:
+          - 'role=button[name="Firmar y registrar"]'
+          - 'button[title^="Firmar y registrar"]'
+          - 'dnt-button:has-text("Firmar y registrar")'
+          - 'text=Firmar y registrar >> visible=true >> nth=0'
   pasos:
     - si_pantalla: clave
       acciones:

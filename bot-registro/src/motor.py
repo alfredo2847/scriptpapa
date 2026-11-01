@@ -361,7 +361,19 @@ class Motor:
         if nombre == "ir":
             self.pagina.goto(self._valor(arg), timeout=max(timeout, 30000))
         elif nombre == "clic":
-            self.localizar(arg).click(timeout=timeout)
+            if isinstance(arg, dict) and "alternativas" in arg:
+                # varias formas de localizar el mismo elemento: se usa la primera que funcione
+                errores = []
+                for selector in arg["alternativas"]:
+                    try:
+                        self.localizar(selector).click(timeout=timeout)
+                        break
+                    except ErrorAyuntamiento as e:
+                        errores.append(str(e))
+                else:
+                    raise ErrorAyuntamiento("Ninguna alternativa encontró el elemento: " + " | ".join(errores))
+            else:
+                self.localizar(arg).click(timeout=timeout)
         elif nombre == "clic_nueva_pestana":
             with self.navegador.contexto.expect_page(timeout=max(timeout, 30000)) as nueva:
                 self.localizar(arg).click(timeout=timeout)

@@ -114,3 +114,10 @@ def test_huellas_del_reg_cargan():
     assert flujo.verificada
     assert flujo.seccion("destinatario")["modo"] == "codigo"
     assert flujo.datos["deteccion"][-1]["pantalla"] == "paso2"
+
+
+def test_clic_con_alternativas(motor):
+    motor.accion({"clic": {"alternativas": ["#no-existe", "text=Asistente de búsqueda"]}})
+    assert motor.pagina.locator("#modal").is_visible()
+    with pytest.raises(ErrorAyuntamiento, match="Ninguna alternativa"):
+        motor.accion({"clic": {"alternativas": ["#no-existe", "#tampoco"]}})
