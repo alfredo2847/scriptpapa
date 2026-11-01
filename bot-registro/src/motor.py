@@ -53,7 +53,7 @@ ACCIONES = {
 
 # Texto visible de la página entrando en los shadow DOM de los componentes (dnt-*).
 TEXTO_PROFUNDO_JS = """
-() => {
+(raiz) => {
   const partes = [];
   const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
   const recorrer = nodo => {
@@ -70,7 +70,7 @@ TEXTO_PROFUNDO_JS = """
       }
     }
   };
-  recorrer(document.body);
+  recorrer(raiz || document.body);
   return partes.join(' ').replace(/ *\\n */g, '\\n').replace(/\\n+/g, '\\n');
 }
 """
@@ -248,12 +248,14 @@ class Motor:
         except Exception:
             return ""
 
-    def texto_completo(self) -> str:
-        """Texto visible de la página incluido el de dentro de los componentes (shadow DOM)."""
+    def texto_completo(self, selector: str | None = None) -> str:
+        """Texto visible (de la página o de un elemento) incluido el de dentro de los componentes (shadow DOM)."""
         try:
+            if selector:
+                return self.pagina.locator(selector).first.evaluate(TEXTO_PROFUNDO_JS)
             return self.pagina.evaluate(TEXTO_PROFUNDO_JS)
         except Exception:
-            return self._texto()
+            return self._texto() if not selector else ""
 
     def coincide(self, nombre: str) -> bool:
         huella = self.flujo.pantallas[nombre]
@@ -463,9 +465,11 @@ class Motor:
         Devuelve False si el código no aparece (sin tocar nada); lanza ErrorAyuntamiento si es ambiguo.
         """
         cfg = self.flujo.seccion("destinatario")
-        self.ejecutar_acciones(cfg.get("abrir"))
-        for paso in cfg.get("filtros") or []:
-            self.elegir_opcion(paso["selector"], self._valor(paso["valor"]))
+        abierto = self.pagina.locator(f'{cfg["campo_busqueda"]} >> visible=true').count() > 0
+        if not abierto:  # tras "Seleccionar" el buscador se cierra; si sigue abierto, se reutiliza
+            self.ejecutar_acciones(cfg.get("abrir"))
+            for paso in cfg.get("filtros") or []:
+                self.elegir_opcion(paso["selector"], self._valor(paso["valor"]))
         campo = self.localizar(cfg["campo_busqueda"])
         campo.fill(codigo)
         self.localizar(cfg["boton_buscar"]).click()
@@ -479,14 +483,13 @@ class Motor:
             if self._capturas_busqueda < 2:
                 self._capturas_busqueda += 1
                 self.capturar(f"busqueda_sin_resultado_{codigo}")
-            self.ejecutar_acciones(cfg.get("cerrar"))
-            return False
+            return False  # el buscador queda abierto para la siguiente búsqueda
         if botones.count() != 1:
             raise ErrorAyuntamiento(f"La búsqueda de {codigo} devuelve {botones.count()} resultados; se esperaba 1")
         botones.first.click()
         self._pausa(1)
         if cfg.get("confirmacion"):
-            elegido = self.pagina.locator(cfg["confirmacion"]).first.inner_text()
+            elegido = self.texto_completo(cfg["confirmacion"]) or self.pagina.locator(cfg["confirmacion"]).first.inner_text()
             if codigo not in elegido:
                 raise ErrorAyuntamiento(f"El organismo seleccionado no es {codigo}: {elegido[:120]!r}")
         return True

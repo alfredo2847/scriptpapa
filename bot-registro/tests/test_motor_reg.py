@@ -41,7 +41,12 @@ function buscar() {
     r.appendChild(caja);
   }
 }
-function elegir() { document.getElementById('elegido').textContent = 'L01461311 - Ayuntamiento de Gandia'; }
+// como en el REG: el organismo elegido se muestra dentro del shadow DOM del componente
+const elegidoSombra = document.getElementById('elegido').attachShadow({mode: 'open'});
+function elegir() {
+  elegidoSombra.innerHTML = '<span>L01461311 - Ayuntamiento de Gandia</span>';
+  document.getElementById('modal').style.display = 'none';
+}
 </script>
 </body></html>
 """
@@ -93,9 +98,12 @@ def test_leer_por_etiquetas(motor):
 
 
 def test_buscar_por_codigo(motor):
+    # varias búsquedas seguidas: sin resultado (el buscador queda abierto), con resultado, y otra vez
     assert motor.buscar_por_codigo("L01469999") is False
-    assert motor.buscar_por_codigo("L01461311") is True
-    assert "L01461311" in motor.pagina.inner_text("#elegido")
+    assert motor.buscar_por_codigo("L01469998") is False
+    assert motor.buscar_por_codigo("L01461311") is True   # la confirmación está en un shadow DOM
+    assert motor.buscar_por_codigo("L01461311") is True   # el buscador se cerró y se vuelve a abrir
+    assert "L01461311" in motor.texto_completo("#elegido")
 
 
 def test_huellas_del_reg_cargan():
