@@ -1,0 +1,20 @@
+# Configuración del vigilante de licitaciones.
+# Solo hace falta poner lo que quieras cambiar; el resto tiene valores por defecto
+# (están en src/comun.py, DEFAULTS). actualizar.bat nunca sobrescribe este archivo.
+
+# Provincias: 46 Valencia, 03 Alicante, 12 Castellón
+provincias: ["46"]
+
+buscar:
+  dias_primera_vez: 30      # la primera búsqueda mira 30 días atrás
+  aviso_dias_plazo: 3       # avisa de las ME INTERESA que vencen en 3 días o menos
+  incluir_dudosos: true     # "catering" sin mención de fiestas: aparece como Dudoso
+
+compradores:
+  anos: 3                   # años completos de histórico
+  meses_antelacion: 2       # enviar la propuesta 2 meses antes del mes en que contratan
+
+# Para añadir palabras sin perder las de serie, copia aquí la lista completa
+# desde src/comun.py (DEFAULTS["palabras"]) y añade las tuyas.
+# palabras:
+#   seguras: [paella, paellada, comida popular, ...]

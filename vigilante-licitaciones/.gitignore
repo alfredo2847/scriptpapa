@@ -1,0 +1,8 @@
+# Resultados y descargas: no se suben al repositorio
+datos/*
+!datos/.gitkeep
+logs/*
+!logs/.gitkeep
+__pycache__/
+.pytest_cache/
+.venv/
