@@ -44,6 +44,18 @@ PROCEDIMIENTOS = {
 
 TIPOS = {"1": "Suministros", "2": "Servicios", "3": "Obras"}
 
+PRESENTACION = {"1": "Electrónica", "2": "Manual (en papel)", "3": "Electrónica y manual"}
+
+GARANTIAS = {"1": "Provisional", "2": "Definitiva", "3": "Complementaria"}
+
+DOCUMENTOS = {
+    "LegalDocumentReference": "pliego_administrativo",
+    "TechnicalDocumentReference": "pliego_tecnico",
+    "AdditionalDocumentReference": "documento",
+}
+
+UNIDADES = {"DAY": "días", "MON": "meses", "ANN": "años"}
+
 
 @dataclass
 class Contrato:
@@ -72,6 +84,12 @@ class Contrato:
     adjudicatarios: list[str] = field(default_factory=list)
     importe_adjudicacion: float | None = None
     fecha_adjudicacion: date | None = None
+    presentacion: str = ""
+    ejecucion: str = ""
+    documentos: list[tuple[str, str, str]] = field(default_factory=list)  # (tipo, nombre, url)
+    criterios: list[tuple[str, str]] = field(default_factory=list)        # (descripción, peso)
+    garantias: list[str] = field(default_factory=list)
+    solvencia: list[str] = field(default_factory=list)
 
     @property
     def texto(self) -> str:
@@ -208,6 +226,41 @@ def parsear_entrada(entrada, fuente: str = "") -> Contrato | None:
         except ValueError:
             c.plazo = datetime.combine(fecha_plazo, datetime.max.time()).replace(microsecond=0)
 
+    c.presentacion = _texto(proceso, "SubmissionMethodCode")
+    periodo = _hijo(proyecto, "PlannedPeriod")
+    partes = []
+    duracion = _hijo(periodo, "DurationMeasure")
+    if duracion is not None and (duracion.text or "").strip():
+        unidad = UNIDADES.get(duracion.get("unitCode", ""), duracion.get("unitCode", ""))
+        partes.append(f"{duracion.text.strip()} {unidad}".strip())
+    inicio, fin = _fecha(_texto(periodo, "StartDate")), _fecha(_texto(periodo, "EndDate"))
+    if inicio or fin:
+        partes.append(" a ".join(f"{d:%d/%m/%Y}" for d in (inicio, fin) if d))
+    c.ejecucion = "; ".join(partes)
+
+    for etiqueta, tipo in DOCUMENTOS.items():
+        for doc in _todos(cfs, etiqueta):
+            url = _texto(doc, "Attachment", "ExternalReference", "URI")
+            if url:
+                c.documentos.append((tipo, _texto(doc, "ID") or tipo, url))
+
+    terminos = _hijo(cfs, "TenderingTerms")
+    for criterio in _todos(terminos, "AwardingCriteria"):
+        descripcion = _texto(criterio, "Description")
+        if descripcion:
+            c.criterios.append((descripcion, _texto(criterio, "WeightNumeric")))
+    for garantia in _todos(terminos, "RequiredFinancialGuarantee"):
+        tipo = GARANTIAS.get(_texto(garantia, "GuaranteeTypeCode"), "Garantía")
+        porcentaje, importe = _texto(garantia, "AmountRate"), _texto(garantia, "LiabilityAmount")
+        detalle = f"{porcentaje} %" if porcentaje else (f"{importe} €" if importe else "")
+        c.garantias.append(f"{tipo}: {detalle}".rstrip(": "))
+    for etiqueta in ("TechnicalEvaluationCriteria", "FinancialEvaluationCriteria"):
+        for criterio in _todos(terminos, etiqueta):
+            descripcion = _texto(criterio, "Description")
+            if descripcion:
+                c.solvencia.append(("Técnica: " if etiqueta.startswith("Tech") else "Económica: ") + descripcion)
+    c.solvencia = _unicos(c.solvencia)
+
     resultados = _todos(cfs, "TenderResult")
     c.adjudicatarios = _unicos(
         _texto(g, "PartyName", "Name") for r in resultados for g in _todos(r, "WinningParty")
@@ -306,6 +359,17 @@ class Red:
 
     def obtener(self, url: str) -> bytes:
         return self._get(url).content
+
+    def descargar_documento(self, url: str, carpeta: Path, nombre: str) -> Path:
+        """Descarga un pliego a la carpeta. Si ya existe uno con ese nombre, no lo repite."""
+        r = self._get(url)
+        if "." not in nombre[-6:]:
+            tipo = r.headers.get("Content-Type", "")
+            nombre += ".pdf" if "pdf" in tipo or r.content[:4] == b"%PDF" else ""
+        destino = carpeta / nombre
+        if not destino.exists():
+            destino.write_bytes(r.content)
+        return destino
 
     def descargar(self, url: str, destino: Path) -> Path:
         """Descarga a destino. Si ya está descargado, no lo repite."""

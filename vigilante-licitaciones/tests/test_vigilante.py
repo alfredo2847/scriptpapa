@@ -167,7 +167,13 @@ def test_comando_buscar_con_archivo(tmp_path, monkeypatch):
     monkeypatch.setattr(licitaciones, "RUTA", tmp_path / "licitaciones.xlsx")
     monkeypatch.setattr(vigilante, "RUTA_ESTADO", tmp_path / "estado.json")
     monkeypatch.setattr(vigilante, "avisar", lambda *a: None)
+    import fichas
+    monkeypatch.setattr(fichas, "CARPETA", tmp_path / "fichas")
     archivo = tmp_path / "licitaciones.atom"
     archivo.write_bytes(feed(entrada("1", "Paellas fiestas", plazo="2099-01-01")))
     assert vigilante.main(["buscar", "--archivo", str(archivo)]) == 0
     assert (tmp_path / "licitaciones.xlsx").exists()
+    carpetas = list((tmp_path / "fichas").iterdir())
+    assert len(carpetas) == 1 and (carpetas[0] / "00_RESUMEN.txt").exists()
+    fila = next(iter(licitaciones.cargar(tmp_path / "licitaciones.xlsx").values()))
+    assert fila["valoracion"] > 0 and fila["carpeta"] == str(carpetas[0])

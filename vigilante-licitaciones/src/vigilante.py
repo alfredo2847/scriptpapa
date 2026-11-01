@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import requests  # noqa: E402
 
 import compradores  # noqa: E402
+import fichas  # noqa: E402
 import licitaciones  # noqa: E402
 from comun import DATOS, DESCARGAS, PROVINCIAS, avisar, cargar_config, configurar_log  # noqa: E402
 from placsp import Red, leer_archivo, leer_feed_reciente, urls_historico  # noqa: E402
@@ -84,6 +85,24 @@ def _leer_estado() -> dict:
         return {}
 
 
+def crear_fichas(encontradas: dict, existentes: dict, config: dict, ahora: datetime, red, log) -> None:
+    """Carpeta con valoración y pliegos para cada licitación que sirve."""
+    for ident, fila in encontradas.items():
+        if fila["encaje"] not in config["fichas"]["encajes"]:
+            continue
+        previa = existentes.get(ident, {}).get("carpeta")
+        log.info(f"  Ficha: {fila['municipio'] or fila['organo']}: {fila['objeto'][:70]}")
+        try:
+            carpeta, puntos, etiqueta = fichas.crear(
+                fila["_contrato"], fila["encaje"], fila["motivo"], fila["municipio"], ahora, config,
+                red=red, log=log, carpeta=Path(previa) if previa else None)
+        except OSError as e:
+            log.warning(f"    No se pudo crear la carpeta: {e}")
+            continue
+        fila["valoracion"] = puntos
+        fila["carpeta"] = str(carpeta)
+
+
 def cmd_buscar(args, config, log) -> int:
     ahora = datetime.now()
     opciones = config["buscar"]
@@ -96,6 +115,7 @@ def cmd_buscar(args, config, log) -> int:
         desde = ahora - timedelta(days=opciones["dias_primera_vez"])
 
     contratos = []
+    red = None
     if args.archivo:
         for a in args.archivo:
             contratos.extend(leer_archivo(Path(a), _fuente_de_archivo(Path(a))))
@@ -117,6 +137,8 @@ def cmd_buscar(args, config, log) -> int:
 
     encontradas = licitaciones.abiertas(contratos, config, ahora)
     existentes = licitaciones.cargar()
+    if not args.sin_fichas:
+        crear_fichas(encontradas, existentes, config, ahora, None if args.archivo else red, log)
     nuevas = licitaciones.actualizar(existentes, encontradas, ahora)
     licitaciones.guardar(existentes, ahora)
     if not args.archivo:
@@ -126,10 +148,14 @@ def cmd_buscar(args, config, log) -> int:
 
     log.info(f"\n{len(encontradas)} licitaciones abiertas que encajan; {len(nuevas)} nuevas. "
              f"Hoja: {licitaciones.RUTA}")
+    if not args.sin_fichas:
+        log.info(f"Carpetas con la valoración de cada una: {fichas.CARPETA}")
     for f in nuevas:
         plazo = f["plazo"].strftime("%d/%m %H:%M") if f.get("plazo") else "sin plazo"
         importe = f"{f['importe']:,.0f} €".replace(",", ".") if f.get("importe") else "importe ?"
-        log.info(f"  NUEVA [{f['encaje']}] {f['municipio'] or f['organo']}: {f['objeto']} ({importe}, plazo {plazo})")
+        nota = f", {f['valoracion']}/100" if f.get("valoracion") is not None else ""
+        log.info(f"  NUEVA [{f['encaje']}{nota}] {f['municipio'] or f['organo']}: {f['objeto']} "
+                 f"({importe}, plazo {plazo})")
 
     pronto = licitaciones.recordatorios(existentes, ahora, opciones["aviso_dias_plazo"])
     for f in pronto:
@@ -158,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("buscar", help="licitaciones abiertas que encajan -> datos/licitaciones.xlsx")
     s.add_argument("--dias", type=float, help="mirar N días atrás en vez de desde la última búsqueda")
     s.add_argument("--archivo", nargs="+", help="usar ATOM/ZIP ya descargados (pruebas)")
+    s.add_argument("--sin-fichas", action="store_true", help="no crear carpetas ni descargar pliegos")
 
     args = parser.parse_args(argv)
     config = cargar_config()

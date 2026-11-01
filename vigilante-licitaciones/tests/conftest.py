@@ -78,10 +78,28 @@ def entrada(
    </cac:BudgetAmount>
    <cac:RequiredCommodityClassification><cbc:ItemClassificationCode listURI="x">{cpv}</cbc:ItemClassificationCode></cac:RequiredCommodityClassification>
    <cac:RealizedLocation><cbc:CountrySubentity>Valencia/València</cbc:CountrySubentity><cbc:CountrySubentityCode listURI="x">{nuts}</cbc:CountrySubentityCode></cac:RealizedLocation>
+   <cac:PlannedPeriod><cbc:DurationMeasure unitCode="DAY">3</cbc:DurationMeasure></cac:PlannedPeriod>
   </cac:ProcurementProject>
   {lotes}
+  <cac:LegalDocumentReference><cbc:ID>PCAP paellas.pdf</cbc:ID>
+   <cac:Attachment><cac:ExternalReference><cbc:URI>https://doc/pcap/{ident}</cbc:URI></cac:ExternalReference></cac:Attachment>
+  </cac:LegalDocumentReference>
+  <cac:TechnicalDocumentReference><cbc:ID>PPT</cbc:ID>
+   <cac:Attachment><cac:ExternalReference><cbc:URI>https://doc/ppt/{ident}</cbc:URI></cac:ExternalReference></cac:Attachment>
+  </cac:TechnicalDocumentReference>
+  <cac:TenderingTerms>
+   <cac:RequiredFinancialGuarantee><cbc:GuaranteeTypeCode>2</cbc:GuaranteeTypeCode><cbc:AmountRate>5</cbc:AmountRate></cac:RequiredFinancialGuarantee>
+   <cac:TendererQualificationRequest>
+    <cac:TechnicalEvaluationCriteria><cbc:Description>Relación de servicios similares de los últimos 3 años</cbc:Description></cac:TechnicalEvaluationCriteria>
+    <cac:FinancialEvaluationCriteria><cbc:Description>Seguro de responsabilidad civil</cbc:Description></cac:FinancialEvaluationCriteria>
+   </cac:TendererQualificationRequest>
+   <cac:AwardingTerms>
+    <cac:AwardingCriteria><cbc:Description>Precio</cbc:Description><cbc:WeightNumeric>70</cbc:WeightNumeric></cac:AwardingCriteria>
+    <cac:AwardingCriteria><cbc:Description>Mejoras</cbc:Description><cbc:WeightNumeric>30</cbc:WeightNumeric></cac:AwardingCriteria>
+   </cac:AwardingTerms>
+  </cac:TenderingTerms>
   {resultado}
-  <cac:TenderingProcess><cbc:ProcedureCode listURI="x">{procedimiento}</cbc:ProcedureCode>{plazo_xml}</cac:TenderingProcess>
+  <cac:TenderingProcess><cbc:ProcedureCode listURI="x">{procedimiento}</cbc:ProcedureCode><cbc:SubmissionMethodCode>1</cbc:SubmissionMethodCode>{plazo_xml}</cac:TenderingProcess>
  </cac-place-ext:ContractFolderStatus>
 </entry>"""
 

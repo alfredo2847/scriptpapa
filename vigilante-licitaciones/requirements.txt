@@ -2,3 +2,4 @@ openpyxl>=3.1
 PyYAML>=6.0
 requests>=2.31
 pytest>=8         # pruebas
+pypdf>=4.0         # leer los pliegos en PDF

@@ -74,6 +74,12 @@ DEFAULTS: dict = {
         "aviso_dias_plazo": 3,      # recordatorio de las ME INTERESA que vencen pronto
         "incluir_dudosos": True,
     },
+    "fichas": {
+        "encajes": ["Alto", "Medio"],   # qué licitaciones tienen carpeta propia
+        "importe_minimo": 1500,         # por debajo, la valoración no suma por importe
+        "importe_maximo": 100000,       # por encima, suma menos (pide más solvencia)
+        "descargar_pliegos": True,
+    },
     "compradores": {
         "anos": 3,
         "fuentes": ["menores", "licitaciones", "agregadas"],

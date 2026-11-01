@@ -45,6 +45,38 @@ actualiza las que ya estaban **sin borrar lo que escribes** en las columnas
 La oferta se presenta a mano en la PLACSP, siguiendo los pliegos de cada
 licitación.
 
+### Carpeta de cada licitación (`fichas/`)
+
+Cada licitación que sirve (encaje Alto o Medio) tiene su carpeta en
+`fichas/`, con la fecha del plazo delante para que salgan ordenadas:
+
+```
+fichas\2026-11-20 Sueca - Servicio de paellas gigantes Fiestas Mayores\
+    00_RESUMEN.txt
+    pliego_administrativo_PCAP.pdf
+    pliego_tecnico_PPT.pdf
+```
+
+`00_RESUMEN.txt` contiene:
+
+- **Valoración de 0 a 100** y de dónde sale cada punto: encaje, si habla de
+  paellas, importe, días de plazo, tipo de procedimiento.
+  70 o más: muy interesante; 50-69: interesante; 30-49: revisar.
+- **Datos principales:** organismo, importe, plazo, procedimiento, forma de
+  presentación, duración, lotes, enlace.
+- **Criterios de adjudicación** con sus puntos, **garantías** y **solvencia
+  exigida**, tal como los publica la plataforma.
+- **Frases clave de los pliegos** (raciones, fechas, registro sanitario,
+  solvencia…), sacadas automáticamente de los PDF.
+
+En `licitaciones.xlsx` aparecen la valoración y un enlace a la carpeta, y la
+hoja se ordena de mayor a menor valoración. La carpeta se actualiza si la
+licitación cambia (por ejemplo, si se publica un pliego nuevo), y los pliegos
+ya descargados no se vuelven a descargar.
+
+Los márgenes de importe y qué encajes tienen carpeta se cambian en
+`config.yaml` (`fichas:`).
+
 ### Encaje
 
 - **Alto:** menciona paella, paellada, comida popular, dinar/sopar de germanor…
@@ -77,7 +109,8 @@ sobrescribe `config.yaml`, `datos/` ni `logs/`.
 python src/vigilante.py compradores            :: últimos 3 años (la primera vez tarda: descarga varios GB)
 python src/vigilante.py compradores --anos 1 --fuentes menores   :: prueba rápida
 python src/vigilante.py buscar                 :: licitaciones nuevas desde la última búsqueda
-python src/vigilante.py buscar --dias 60       :: mirar 60 días atrás
+python src/vigilante.py buscar --dias 60       :: mirar 60 días atrás (y crear las carpetas que falten)
+python src/vigilante.py buscar --sin-fichas    :: solo la hoja, sin carpetas ni pliegos
 ```
 
 Las descargas se guardan en `datos/descargas/` y no se repiten. Se pueden

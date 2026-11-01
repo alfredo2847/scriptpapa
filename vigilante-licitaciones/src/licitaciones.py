@@ -26,12 +26,12 @@ DESCARTADA = "DESCARTADA"
 CERRADAS = (PRESENTADA, DESCARTADA)
 
 COLUMNAS = [
-    "seguimiento", "encaje", "dias_restantes", "plazo", "municipio", "organo", "objeto",
+    "seguimiento", "valoracion", "encaje", "dias_restantes", "plazo", "municipio", "organo", "objeto",
     "importe", "estado", "procedimiento", "tipo", "motivo", "enlace", "fuente",
-    "expediente", "detectada", "actualizada", "notas", "id",
+    "expediente", "detectada", "actualizada", "carpeta", "notas", "id",
 ]
 COLUMNAS_MANUALES = ("seguimiento", "notas")
-ANCHOS = {"objeto": 60, "organo": 40, "motivo": 40, "enlace": 30, "notas": 30, "id": 20}
+ANCHOS = {"carpeta": 30, "objeto": 60, "organo": 40, "motivo": 40, "enlace": 30, "notas": 30, "id": 20}
 
 
 def abiertas(contratos: list[Contrato], config: dict, ahora: datetime) -> dict[str, dict]:
@@ -70,6 +70,7 @@ def fila(c: Contrato, encaje: str, motivo: str) -> dict:
         "expediente": c.expediente,
         "actualizada": c.actualizado,
         "id": c.id,
+        "_contrato": c,
     }
 
 
@@ -106,7 +107,8 @@ def _clave_orden(f: dict, ahora: datetime):
     plazo = f.get("plazo") if isinstance(f.get("plazo"), datetime) else None
     vencida = bool(plazo and plazo < ahora)
     cerrada = f.get("seguimiento") in CERRADAS
-    return (cerrada or vencida, ORDEN_ENCAJE.get(f.get("encaje"), 9), plazo or datetime.max)
+    valoracion = f.get("valoracion") if isinstance(f.get("valoracion"), (int, float)) else -1
+    return (cerrada or vencida, -valoracion, ORDEN_ENCAJE.get(f.get("encaje"), 9), plazo or datetime.max)
 
 
 def guardar(existentes: dict[str, dict], ahora: datetime, ruta: Path | None = None) -> None:
@@ -125,6 +127,10 @@ def guardar(existentes: dict[str, dict], ahora: datetime, ruta: Path | None = No
         f["dias_restantes"] = (plazo.date() - ahora.date()).days if plazo else None
         hoja.append([f.get(c) for c in COLUMNAS])
         n = hoja.max_row
+        if f.get("carpeta"):
+            celda = hoja.cell(row=n, column=COLUMNAS.index("carpeta") + 1)
+            celda.hyperlink = str(f["carpeta"])
+            celda.style = "Hyperlink"
         if f.get("seguimiento") == NUEVA:
             for celda in hoja[n]:
                 celda.fill = amarillo
