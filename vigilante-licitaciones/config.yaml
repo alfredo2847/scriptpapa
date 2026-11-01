@@ -2,8 +2,9 @@
 # Solo hace falta poner lo que quieras cambiar; el resto tiene valores por defecto
 # (están en src/comun.py, DEFAULTS). actualizar.bat nunca sobrescribe este archivo.
 
-# Provincias: 46 Valencia, 03 Alicante, 12 Castellón
-provincias: ["46"]
+# Comunitat Valenciana: 46 Valencia, 03 Alicante, 12 Castellón.
+# Nada de fuera de estas provincias aparece en las hojas ni en fichas/.
+provincias: ["46", "03", "12"]
 
 buscar:
   dias_primera_vez: 30      # la primera búsqueda mira 30 días atrás

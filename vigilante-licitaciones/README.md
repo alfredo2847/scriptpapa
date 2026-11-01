@@ -2,7 +2,8 @@
 
 Busca en los datos públicos de la **Plataforma de Contratación del Sector
 Público** (PLACSP) los contratos de paellas, comidas populares y catering de
-fiestas en la provincia de Valencia (configurable).
+fiestas en la **Comunitat Valenciana** (Valencia, Alicante y Castellón). Lo de
+fuera de la Comunitat se descarta.
 
 **Es independiente del bot de registro:** tiene su propia carpeta, su propio
 entorno y sus propias hojas. No lee ni escribe nada de `bot-registro/`, así que

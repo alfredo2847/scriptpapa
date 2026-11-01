@@ -27,8 +27,8 @@ BASE_PLACSP = "https://contrataciondelsectorpublico.gob.es/sindicacion"
 
 # Valores por defecto. config.yaml solo necesita lo que quieras cambiar.
 DEFAULTS: dict = {
-    # Códigos de provincia: 46 Valencia, 03 Alicante, 12 Castellón
-    "provincias": ["46"],
+    # Comunitat Valenciana: 46 Valencia, 03 Alicante, 12 Castellón
+    "provincias": ["46", "03", "12"],
     "fuentes": {
         "licitaciones": f"{BASE_PLACSP}/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom",
         "agregadas": f"{BASE_PLACSP}/sindicacion_1044/PlataformasAgregadasSinMenores.atom",
@@ -87,6 +87,9 @@ DEFAULTS: dict = {
     },
     "red": {"timeout_seg": 120, "reintentos": 3},
 }
+
+# Código NUTS de la Comunitat Valenciana entera (contratos de la Generalitat sin provincia concreta)
+NUTS_COMUNITAT = "ES52"
 
 PROVINCIAS = {
     "46": {"nuts": "ES523", "nombre": "Valencia"},

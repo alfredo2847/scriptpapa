@@ -60,6 +60,14 @@ def test_zona(config):
     solo_cp = uno(nuts="", dir3="L01000000", cp="46100")
     assert en_zona(solo_cp, ["46"])
     assert not en_zona(uno(), ["03"])
+    alicante = uno(nuts="ES521", dir3="L01030141", cp="03001", ciudad="Alicante")
+    castellon = uno(nuts="ES522", dir3="L01120402", cp="12001", ciudad="Castellón")
+    murcia = uno(nuts="ES620", dir3="L01300308", cp="30001", ciudad="Murcia")
+    toda = uno(nuts="ES52", dir3="A10000000", cp="")
+    comunitat = config["provincias"]
+    assert comunitat == ["46", "03", "12"]
+    assert all(en_zona(c, comunitat) for c in (uno(), alicante, castellon, toda))
+    assert not en_zona(murcia, comunitat) and not en_zona(fuera, comunitat)
 
 
 def test_urls_historico():

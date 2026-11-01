@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from functools import lru_cache
 
-from comun import PROVINCIAS, municipio_desde_nombre, normalizar
+from comun import NUTS_COMUNITAT, PROVINCIAS, municipio_desde_nombre, normalizar
 from placsp import Contrato
 
 ALTO = "Alto"
@@ -31,7 +31,12 @@ def _coincidencias(texto: str, terminos: list[str]) -> list[str]:
 
 
 def en_zona(c: Contrato, provincias: list[str]) -> bool:
-    """El contrato se ejecuta en, o lo convoca un organismo de, alguna provincia elegida."""
+    """El contrato se ejecuta en, o lo convoca un organismo de, alguna provincia elegida.
+
+    Los que se ejecutan en "toda la Comunitat Valenciana" (NUTS ES52) también cuentan.
+    """
+    if any(n.strip().upper() == NUTS_COMUNITAT for n in c.nuts):
+        return True
     for prov in provincias:
         nuts = PROVINCIAS[prov]["nuts"]
         if any(n.upper().startswith(nuts) for n in c.nuts):
