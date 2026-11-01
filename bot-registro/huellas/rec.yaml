@@ -171,7 +171,8 @@ justificante:
   etiquetas:
     num_registro: "Número de registro:"
     fecha: "Fecha de registro:"
-  regex_num_registro: '([A-Z]{3,}\w+)'
+  regex_num_registro: '([A-Z]{4,}\d\w+)'   # REGAGE26e00093912184
+  espera_datos_seg: 30
   descargar: 'role=button[name="Descargar justificante"]'
 
 # Fase 2: llegar al buscador de organismos (paso 2) sin enviar nada

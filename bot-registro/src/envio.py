@@ -319,7 +319,8 @@ def procesar(hoja: HojaControl, fila: dict, adaptador: Adaptador, config: dict, 
         hoja.guardar()
         raise DetenerTanda(f"Justificante ilegible; queda en REVISAR: {e}") from None
     if not datos["num_registro"]:
-        fila["notas"] = "Pantalla final sin número de registro legible; comprobar a mano"
+        fila["notas"] = ("Pantalla final sin número de registro legible; comprobar a mano en "
+                         f"{fila.get('url_registro') or 'Mis registros'}")
         hoja.guardar()
         raise DetenerTanda("Justificante sin número de registro; queda en REVISAR")
     fila.update(

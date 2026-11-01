@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import re
+import time
 from pathlib import Path
 
 from comun import RAIZ, ahora_texto, nombre_archivo_seguro, rellenar_plantilla
@@ -129,12 +130,22 @@ class Adaptador:
         """Devuelve {num_registro, fecha_envio, justificante, aviso}."""
         cfg = self.flujo.seccion("justificante")
         self.motor.exigir(cfg["pantalla"])
-        campos = self.motor.leer_campos(cfg.get("campos"))
-        campos.update(self.motor.leer_por_etiquetas(cfg.get("etiquetas")))
-        numero = campos.get("num_registro", "")
-        if cfg.get("regex_num_registro"):
-            m = re.search(cfg["regex_num_registro"], numero)
-            numero = (m.group(1) if m and m.groups() else m.group(0)) if m else ""
+        fila["url_registro"] = self.motor.pagina.url  # por si falla algo después: permite recuperarlo
+        # La página del registro rellena los datos con un pequeño retraso: se reintenta hasta 30 s.
+        limite = time.monotonic() + float(cfg.get("espera_datos_seg", 30))
+        while True:
+            try:
+                campos = self.motor.leer_campos(cfg.get("campos"))
+                campos.update(self.motor.leer_por_etiquetas(cfg.get("etiquetas")))
+            except ErrorAyuntamiento:
+                campos = {}
+            numero = campos.get("num_registro", "")
+            if cfg.get("regex_num_registro"):
+                m = re.search(cfg["regex_num_registro"], numero)
+                numero = (m.group(1) if m and m.groups() else m.group(0)) if m else ""
+            if numero.strip() or time.monotonic() >= limite:
+                break
+            self.motor._pausa(2)
         resultado = {
             "url_registro": self.motor.pagina.url,
             "num_registro": numero.strip(),
