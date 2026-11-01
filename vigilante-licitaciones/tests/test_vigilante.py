@@ -307,19 +307,33 @@ def test_lista_html(tmp_path):
     assert "no hay licitaciones de paellas abiertas" in vacia
 
 
-def test_historial_menores_va_a_su_carpeta(tmp_path, monkeypatch):
+def test_historial_tres_documentos(tmp_path, monkeypatch):
     import vigilante
-    monkeypatch.setattr(vigilante, "CARPETA_MENORES", tmp_path / "historial_contratos_menores")
-    monkeypatch.setattr(vigilante, "CARPETA_TODOS", tmp_path / "historial_contratos_todos")
-    archivo = tmp_path / "contratosMenoresPerfilesContratantes_2025.zip"
-    with zipfile.ZipFile(archivo, "w") as z:
-        z.writestr("a.atom", feed(entrada("1", "Paellas gigantes fiestas", estado="RES",
-                                          adjudicatario="Pepe SL", adjudicado="8000", fecha_adj="2025-07-10")))
-    assert vigilante.main(["compradores", "--archivo", str(archivo), "--no-abrir"]) == 0
-    carpeta = tmp_path / "historial_contratos_menores"
-    assert (carpeta / "ANALISIS_CONTRATOS_MENORES.html").exists()
-    assert (carpeta / "contratos_menores.xlsx").exists()
-    assert "Historial de contratos menores de paellas" in \
-        (carpeta / "ANALISIS_CONTRATOS_MENORES.html").read_text(encoding="utf-8")
-    assert not (tmp_path / "historial_contratos_todos").exists()
-    assert vigilante.salida_historial(["menores", "licitaciones"])[0].parent.name == "historial_contratos_todos"
+    monkeypatch.setattr(vigilante, "RAIZ_PROYECTO", tmp_path)
+    menores = tmp_path / "contratosMenoresPerfilesContratantes_2025.zip"
+    with zipfile.ZipFile(menores, "w") as z:
+        z.writestr("a.atom", feed(
+            entrada("1", "Paellas gigantes fiestas", estado="RES", adjudicatario="Pepe SL",
+                    adjudicado="8000", fecha_adj="2025-07-10"),
+            entrada("2", "Paellas fiestas 2024", estado="RES", adjudicatario="Pepe SL",
+                    adjudicado="7000", fecha_adj="2024-07-10")))
+    licit = tmp_path / "licitacionesPerfilesContratanteCompleto3_2025.zip"
+    with zipfile.ZipFile(licit, "w") as z:
+        z.writestr("b.atom", feed(
+            entrada("3", "Servicio de paellas gigantes Fiestas Mayores", estado="RES",
+                    organo="Ajuntament d'Alzira", ciudad="Alzira", dir3="L01460176", cp="46600",
+                    adjudicatario="Sol SL", adjudicado="20000", fecha_adj="2025-06-01"),
+            entrada("4", "Concurso de paellas", estado="RES", adjudicatario="Sol SL",
+                    adjudicado="16000", fecha_adj="2025-08-01")))
+    assert vigilante.main(["compradores", "--archivo", str(menores), str(licit), "--no-abrir"]) == 0
+    menores_html = (tmp_path / "historial_contratos_menores" / "ANALISIS_CONTRATOS_MENORES.html").read_text("utf-8")
+    licit_html = (tmp_path / "historial_licitaciones" / "ANALISIS_LICITACIONES.html").read_text("utf-8")
+    conjunto_html = (tmp_path / "historial_conjunto" / "ANALISIS_CONJUNTO.html").read_text("utf-8")
+    assert "Alzira" not in menores_html and "Alzira" in licit_html
+    assert "Ayuntamientos que más contratan paellas" in conjunto_html
+    assert "Menores" in conjunto_html and "Licit." in conjunto_html
+    # En el conjunto, Sueca (3 contratos) va antes que Alzira (1)
+    assert conjunto_html.index("<b>Sueca</b>") < conjunto_html.index("<b>Alzira</b>")
+    assert (tmp_path / "historial_conjunto" / "conjunto.xlsx").exists()
+    assert vigilante.analisis_a_generar(["menores"]) == ["menores"]
+    assert vigilante.analisis_a_generar(["licitaciones", "agregadas"]) == ["licitaciones"]

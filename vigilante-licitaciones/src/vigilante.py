@@ -1,6 +1,6 @@
 """Vigilante de contratos públicos de paellas para fiestas.
 
-    python src/vigilante.py compradores [--anos 3]   historial de contratos menores -> historial_contratos_menores/
+    python src/vigilante.py compradores [--anos 3]   historial: contratos menores, licitaciones pasadas y conjunto
     python src/vigilante.py buscar                   licitaciones abiertas -> datos/licitaciones.xlsx
 
 Solo lee datos públicos de la Plataforma de Contratación del Sector Público.
@@ -42,77 +42,101 @@ def _fuente_de_archivo(ruta: Path) -> str:
     return "licitaciones"
 
 
-CARPETA_MENORES = Path(__file__).resolve().parent.parent / "historial_contratos_menores"
-CARPETA_TODOS = Path(__file__).resolve().parent.parent / "historial_contratos_todos"
+RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
+
+# Un documento por análisis, cada uno en su carpeta:
+# (carpeta, informe, hoja, título, orden del ranking)
+SALIDAS = {
+    "menores": ("historial_contratos_menores", "ANALISIS_CONTRATOS_MENORES.html", "contratos_menores.xlsx",
+                "Historial de contratos menores de paellas", "prioridad"),
+    "licitaciones": ("historial_licitaciones", "ANALISIS_LICITACIONES.html", "licitaciones_pasadas.xlsx",
+                     "Historial de licitaciones de paellas", "prioridad"),
+    "conjunto": ("historial_conjunto", "ANALISIS_CONJUNTO.html", "conjunto.xlsx",
+                 "Ayuntamientos que más contratan paellas (contratos menores y licitaciones)", "demanda"),
+}
 
 
-def salida_historial(fuentes: list[str]) -> tuple[Path, Path, str]:
-    """Carpeta, informe y título según lo analizado: solo contratos menores, o todo."""
-    if set(fuentes) == {"menores"}:
-        return (CARPETA_MENORES / "ANALISIS_CONTRATOS_MENORES.html",
-                CARPETA_MENORES / "contratos_menores.xlsx",
-                "Historial de contratos menores de paellas")
-    return (CARPETA_TODOS / "ANALISIS_CONTRATOS.html",
-            CARPETA_TODOS / "contratos.xlsx",
-            "Historial de contratos de paellas (contratos menores y licitaciones adjudicadas)")
+def analisis_a_generar(fuentes: list[str]) -> list[str]:
+    """Qué documentos salen según las fuentes leídas."""
+    hay_menores = "menores" in fuentes
+    hay_licitaciones = bool({"licitaciones", "agregadas"} & set(fuentes))
+    salida = (["menores"] if hay_menores else []) + (["licitaciones"] if hay_licitaciones else [])
+    return salida + (["conjunto"] if hay_menores and hay_licitaciones else [])
 
 
 def cmd_compradores(args, config, log) -> int:
     anos = args.anos or config["compradores"]["anos"]
     provincias = ", ".join(PROVINCIAS[p]["nombre"] for p in config["provincias"])
+    antelacion = config["compradores"]["meses_antelacion"]
 
-    archivos: list[tuple[Path, str]] = []
-    fallidas: list[str] = []
     if args.archivo:
         archivos = [(Path(a), _fuente_de_archivo(Path(a))) for a in args.archivo]
-        fuentes = sorted({f for _, f in archivos})
+        fuentes = sorted({f for _, f in archivos}, key=["menores", "licitaciones", "agregadas"].index)
     else:
         fuentes = args.fuentes.split(",") if args.fuentes else config["compradores"]["fuentes"]
-    ruta_informe, ruta_hoja, titulo = salida_historial(fuentes)
-    log.info(f"{titulo}: últimos {anos} años en {provincias}")
-    if not args.archivo:
         red = Red(config["red"]["timeout_seg"], config["red"]["reintentos"])
-        for fuente in fuentes:
-            for url in urls_historico(config["fuentes"][fuente], anos):
-                destino = DESCARGAS / fuente / url.rsplit("/", 1)[-1]
-                ya = destino.exists()
-                log.info(f"{'Ya descargado' if ya else 'Descargando'}: {url}")
+        archivos = [(DESCARGAS / f / url.rsplit("/", 1)[-1], f, url)
+                    for f in fuentes for url in urls_historico(config["fuentes"][f], anos)]
+    log.info(f"Historial de contratos de paellas de los últimos {anos} años en {provincias} "
+             f"(fuentes: {', '.join(fuentes)})")
+    fallidas: list[str] = []
+
+    def todos():
+        """Descarga cada archivo justo antes de leerlo (y lo borra después si se pide)."""
+        for entrada in archivos:
+            ruta, fuente = entrada[0], entrada[1]
+            if not args.archivo:
+                url = entrada[2]
+                log.info(f"{'Ya descargado' if ruta.exists() else 'Descargando'}: {url}")
                 try:
-                    archivos.append((red.descargar(url, destino), fuente))
+                    red.descargar(url, ruta)
                 except requests.RequestException as e:
                     log.warning(f"  No se pudo descargar ({e})")
                     fallidas.append(url)
-
-    def todos():
-        for ruta, fuente in archivos:
+                    continue
             log.info(f"Leyendo {ruta.name}")
             try:
                 yield from leer_archivo(ruta, fuente)
             except Exception as e:  # un archivo dañado no debe parar el resto
                 log.warning(f"  No se pudo leer {ruta.name}: {e}")
+            if args.borrar_descargas and not args.archivo:
+                ruta.unlink(missing_ok=True)
 
     hallazgos = compradores.filtrar(todos(), config)
-    ruta_informe.parent.mkdir(parents=True, exist_ok=True)
-    res = compradores.guardar(hallazgos, config["compradores"]["meses_antelacion"], ruta_hoja)
+    grupos = {
+        "menores": [h for h in hallazgos if h.via == "Contrato menor"],
+        "licitaciones": [h for h in hallazgos if h.via == "Licitación"],
+        "conjunto": hallazgos,
+    }
     avisos = []
     if fallidas:
         avisos.append(f"{len(fallidas)} archivos no se pudieron descargar, así que puede faltar parte del "
-                      "histórico. Se reintentan en la próxima ejecución.")
-    informe = informe_compradores.generar(res["analisis"], datetime.now(), ruta_informe, avisos, titulo)
-    log.info(f"\nListo: {res['contratos']} contratos de paellas en {res['municipios']} ayuntamientos "
-             f"({res['prioridad_1']} clientes recurrentes).")
-    for f in res["analisis"]["municipios"][:15]:
-        importe = f"{f['importe_medio']:,.0f} €".replace(",", ".") if f["importe_medio"] else "importe ?"
-        log.info(f"  [{f['prioridad']}] {f['municipio']} ({f['provincia'] or '?'}): {f['contratos']} contrato(s), "
-                 f"{importe} de media, suele contratar en {f['mes_habitual'] or '?'} "
-                 f"-> enviar propuesta en {f['enviar_propuesta_en'] or '?'}")
-    log.info(f"\nCarpeta: {ruta_informe.parent}\nInforme: {informe.name}\nHoja:    {ruta_hoja.name}")
+                      "historial. Se reintentan en la próxima ejecución.")
+
+    informes = []
+    ahora = datetime.now()
+    for clave in analisis_a_generar(fuentes):
+        carpeta, nombre_informe, nombre_hoja, titulo, orden = SALIDAS[clave]
+        carpeta = RAIZ_PROYECTO / carpeta
+        carpeta.mkdir(parents=True, exist_ok=True)
+        res = compradores.guardar(grupos[clave], antelacion, carpeta / nombre_hoja, orden=orden)
+        informe = informe_compradores.generar(res["analisis"], ahora, carpeta / nombre_informe, avisos, titulo)
+        informes.append(informe)
+        log.info(f"\n{titulo}: {res['contratos']} contratos en {res['municipios']} ayuntamientos "
+                 f"({res['prioridad_1']} clientes recurrentes)")
+        for f in res["analisis"]["municipios"][:10]:
+            importe = f"{f['importe_medio']:,.0f} €".replace(",", ".") if f["importe_medio"] else "importe ?"
+            log.info(f"  [{f['prioridad']}] {f['municipio']} ({f['provincia'] or '?'}): "
+                     f"{f['contratos']} contrato(s), {importe} de media, suele contratar en "
+                     f"{f['mes_habitual'] or '?'} -> enviar propuesta en {f['enviar_propuesta_en'] or '?'}")
+        log.info(f"  Carpeta: {carpeta}")
+
     if fallidas:
         log.warning(f"\n{len(fallidas)} archivos no se pudieron descargar (puede que aún no existan). "
                     "Si faltan años enteros, descárgalos a mano y usa --archivo <ruta>.")
-    if not args.no_abrir and sys.platform == "win32":
+    if informes and not args.no_abrir and sys.platform == "win32":
         try:
-            os.startfile(informe)  # type: ignore[attr-defined]
+            os.startfile(informes[-1])  # type: ignore[attr-defined]
         except OSError:
             pass
     return 0
@@ -262,9 +286,11 @@ def main(argv: list[str] | None = None) -> int:
 
     s = sub.add_parser("compradores", help="histórico de contratos: quién contrata paellas, cuándo y a quién")
     s.add_argument("--anos", type=int, help="años completos hacia atrás (por defecto, config.yaml)")
-    s.add_argument("--fuentes", help="por defecto solo menores; menores,licitaciones,agregadas para incluir licitaciones adjudicadas")
+    s.add_argument("--fuentes", help="por defecto las tres: menores,licitaciones,agregadas")
     s.add_argument("--archivo", nargs="+", help="usar ZIP/ATOM ya descargados en vez de descargarlos")
     s.add_argument("--no-abrir", action="store_true", help="no abrir el informe al terminar")
+    s.add_argument("--borrar-descargas", action="store_true",
+                   help="borrar cada archivo descargado después de leerlo (ahorra disco)")
 
     s = sub.add_parser("buscar", help="licitaciones abiertas que encajan -> datos/licitaciones.xlsx")
     s.add_argument("--dias", type=float, help="mirar N días atrás en vez de desde la última búsqueda")

@@ -20,23 +20,25 @@ puede funcionar mientras el bot está enviando.
 | `compradores` | Historial de contratos menores de paellas: qué ayuntamientos las contratan, en qué mes, por cuánto y a qué empresa | `historial_contratos_menores/` |
 | `buscar` | Licitaciones abiertas, con plazo, que encajan | `datos/licitaciones.xlsx` |
 
-### Historial de contratos menores (`compradores`)
+### Historial (`compradores`): tres documentos
 
-Es un análisis aparte de las licitaciones abiertas: mira los contratos menores
-(adjudicados directamente, sin licitación) de los últimos años para saber a qué
-ayuntamientos escribir y cuándo. Solo cuentan los que hablan de paellas.
+Es un análisis aparte de las licitaciones abiertas: mira los contratos de
+paellas de los últimos años para saber qué ayuntamientos las contratan, cuándo
+y por cuánto. Solo cuentan los que hablan de paellas. Salen tres documentos,
+cada uno en su carpeta:
 
-Todo queda en su propia carpeta:
+| Carpeta | Documento | Qué analiza |
+|---|---|---|
+| `historial_contratos_menores\` | `ANALISIS_CONTRATOS_MENORES.html` + `contratos_menores.xlsx` | Contratos menores (adjudicados directamente, sin licitación) |
+| `historial_licitaciones\` | `ANALISIS_LICITACIONES.html` + `licitaciones_pasadas.xlsx` | Licitaciones pasadas (PLACSP y plataformas agregadas) |
+| `historial_conjunto\` | `ANALISIS_CONJUNTO.html` + `conjunto.xlsx` | Las dos cosas juntas: **qué ayuntamientos piden más paellas**, ordenados por número de contratos, con cuántos fueron contratos menores y cuántos licitaciones |
 
-```
-historial_contratos_menores\
-    ANALISIS_CONTRATOS_MENORES.html   el informe (se abre solo al terminar)
-    contratos_menores.xlsx            lo mismo en Excel, una pestaña por apartado
-```
+Con `--fuentes menores` solo se hace el primero; con
+`--fuentes licitaciones,agregadas`, solo el segundo. El conjunto sale cuando
+se analizan las dos cosas. Al terminar se abre el último en el navegador.
 
-Con `--fuentes menores,licitaciones,agregadas` se analizan también las
-licitaciones ya adjudicadas, y el resultado va a otra carpeta,
-`historial_contratos_todos\`, para que no se mezcle.
+Las licitaciones pasadas ocupan mucho (varios GB por año, de toda España).
+Con `--borrar-descargas` cada archivo se borra en cuanto se ha leído.
 
 El informe contiene:
 
@@ -163,9 +165,10 @@ sobrescribe `config.yaml`, `datos/` ni `logs/`.
 
 ```bat
 .venv\Scripts\activate
-python src/vigilante.py compradores            :: historial de contratos menores, últimos 3 años
-python src/vigilante.py compradores --anos 1   :: prueba rápida con el último año
-python src/vigilante.py compradores --fuentes menores,licitaciones,agregadas   :: también licitaciones adjudicadas
+python src/vigilante.py compradores                     :: los tres documentos, últimos 3 años
+python src/vigilante.py compradores --borrar-descargas  :: igual, borrando cada descarga tras leerla
+python src/vigilante.py compradores --fuentes menores   :: solo contratos menores
+python src/vigilante.py compradores --fuentes licitaciones,agregadas   :: solo licitaciones pasadas
 python src/vigilante.py buscar                 :: licitaciones nuevas desde la última búsqueda
 python src/vigilante.py buscar --dias 60       :: mirar 60 días atrás (y crear las carpetas que falten)
 python src/vigilante.py buscar --sin-fichas    :: solo la hoja, sin carpetas ni pliegos
@@ -173,7 +176,7 @@ python src/vigilante.py lista                  :: rehacer LISTA_LICITACIONES.htm
 ```
 
 Las descargas se guardan en `datos/descargas/` y no se repiten. Se pueden
-borrar cuando ya tengas el informe de `historial_contratos_menores`.
+borrar cuando ya tengas los informes de historial.
 
 Si la PLACSP cambia las direcciones de descarga, se ponen en `config.yaml`
 (`fuentes:`), o se descargan los ZIP a mano y se usan con

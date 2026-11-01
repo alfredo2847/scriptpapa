@@ -123,7 +123,13 @@ def resumen_general(hallazgos: list[Hallazgo]) -> dict:
     }
 
 
-def resumen_municipios(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date | None = None) -> list[dict]:
+def resumen_municipios(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date | None = None,
+                       orden: str = "prioridad") -> list[dict]:
+    """Un resumen por ayuntamiento.
+
+    orden="prioridad": primero los clientes recurrentes (para el calendario de envíos).
+    orden="demanda": primero los que más contratos de paellas han hecho, sumando todas las vías.
+    """
     hoy = hoy or date.today()
     grupos: dict[str, list[Hallazgo]] = defaultdict(list)
     for h in hallazgos:
@@ -149,6 +155,8 @@ def resumen_municipios(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date
             "municipio": next((h.municipio for h in grupo if h.municipio), ultimo.contrato.organo),
             "provincia": next((h.provincia for h in grupo if h.provincia), ""),
             "contratos": len(grupo),
+            "contratos_menores": sum(h.via == "Contrato menor" for h in grupo),
+            "licitaciones": sum(h.via == "Licitación" for h in grupo),
             "anos": ", ".join(str(a) for a in anos),
             "importe_medio": _redondo(statistics.mean(importes)) if importes else None,
             "importe_min": _redondo(min(importes)) if importes else None,
@@ -166,7 +174,10 @@ def resumen_municipios(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date
             "dir3_ayto": next((h.dir3 for h in grupo if h.dir3), ""),
             "_mes_envio": _mes_envio(mes_habitual, antelacion) if mes_habitual else None,
         })
-    filas.sort(key=lambda f: (f["prioridad"], -f["contratos"], -(f["importe_medio"] or 0), f["municipio"]))
+    if orden == "demanda":
+        filas.sort(key=lambda f: (-f["contratos"], -(f["importe_total"] or 0), f["prioridad"], f["municipio"]))
+    else:
+        filas.sort(key=lambda f: (f["prioridad"], -f["contratos"], -(f["importe_medio"] or 0), f["municipio"]))
     return filas
 
 
@@ -260,8 +271,9 @@ def filas_contratos(hallazgos: list[Hallazgo]) -> list[dict]:
     } for h in orden]
 
 
-def analizar(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date | None = None) -> dict:
-    municipios = resumen_municipios(hallazgos, antelacion, hoy)
+def analizar(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date | None = None,
+             orden: str = "prioridad") -> dict:
+    municipios = resumen_municipios(hallazgos, antelacion, hoy, orden)
     return {
         "general": resumen_general(hallazgos),
         "municipios": municipios,
@@ -271,6 +283,7 @@ def analizar(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date | None = 
         "competencia": resumen_competencia(hallazgos),
         "contratos": filas_contratos(hallazgos),
         "antelacion": antelacion,
+        "orden": orden,
     }
 
 
@@ -308,12 +321,16 @@ def _pestana(libro: Workbook, titulo: str, filas: list[dict], primera: bool = Fa
 
 
 def guardar(hallazgos: list[Hallazgo], antelacion: int, ruta: Path | None = None,
-            hoy: date | None = None) -> dict:
+            hoy: date | None = None, orden: str = "prioridad") -> dict:
     ruta = ruta or RUTA
-    analisis = analizar(hallazgos, antelacion, hoy)
+    analisis = analizar(hallazgos, antelacion, hoy, orden)
     general = analisis["general"]
     libro = Workbook()
-    _pestana(libro, "ayuntamientos", analisis["municipios"], primera=True)
+    municipios = analisis["municipios"]
+    if not (general["contratos_menores"] and general["licitaciones"]):
+        municipios = [{k: v for k, v in f.items() if k not in ("contratos_menores", "licitaciones")}
+                      for f in municipios]
+    _pestana(libro, "ayuntamientos", municipios, primera=True)
     _pestana(libro, "calendario_envios", analisis["calendario"])
     _pestana(libro, "por_mes", analisis["meses"])
     _pestana(libro, "por_provincia", analisis["provincias"])

@@ -76,20 +76,28 @@ def generar(analisis: dict, ahora: datetime, ruta: Path | None = None, avisos: l
         clases=["", "num", ""],
     )
 
-    ranking = _tabla(
-        ["Prior.", "Ayuntamiento", "Prov.", "Contratos", "Años", "Importe medio", "Mín – máx",
-         "Mes habitual", "Enviar en", "Último contrato", "Empresa habitual"],
-        [[f"<span class='p p{f['prioridad']}'>{f['prioridad']}</span>",
-          f"<b>{_e(f['municipio'])}</b><div class='peq'>{_e(f['ultimo_objeto'])}</div>",
-          _e(f["provincia"]), str(f["contratos"]), _e(f["anos"]), _euros(f["importe_medio"]),
-          f"{_euros(f['importe_min'])} – {_euros(f['importe_max'])}", _e(f["mes_habitual"]),
-          f"<b>{_e(f['enviar_propuesta_en'])}</b>",
-          f"{_fecha(f['ultimo_contrato'])}<div class='peq'>{_euros(f['ultimo_importe'])}</div>",
-          _e(f["empresa_habitual"]) or "—"]
-         for f in municipios],
-        vacio="No se ha encontrado ningún contrato de paellas.",
-        clases=["", "", "", "num", "", "num", "num", "", "", "num", ""],
-    )
+    mixto = bool(g["contratos_menores"] and g["licitaciones"])
+    demanda = analisis.get("orden") == "demanda"
+    cab = ["#"] if demanda else []
+    cab += ["Prior.", "Ayuntamiento", "Prov.", "Contratos"]
+    cab += ["Menores", "Licit."] if mixto else []
+    cab += ["Años", "Importe medio", "Mín – máx", "Mes habitual", "Enviar en", "Último contrato", "Empresa habitual"]
+    clases_r = (["num"] if demanda else []) + ["", "", "", "num"] + (["num", "num"] if mixto else []) + \
+        ["", "num", "num", "", "", "num", ""]
+    filas_r = []
+    for n, f in enumerate(municipios, start=1):
+        fila = [str(n)] if demanda else []
+        fila += [f"<span class='p p{f['prioridad']}'>{f['prioridad']}</span>",
+                 f"<b>{_e(f['municipio'])}</b><div class='peq'>{_e(f['ultimo_objeto'])}</div>",
+                 _e(f["provincia"]), f"<b>{f['contratos']}</b>"]
+        fila += [str(f["contratos_menores"]), str(f["licitaciones"])] if mixto else []
+        fila += [_e(f["anos"]), _euros(f["importe_medio"]),
+                 f"{_euros(f['importe_min'])} – {_euros(f['importe_max'])}", _e(f["mes_habitual"]),
+                 f"<b>{_e(f['enviar_propuesta_en'])}</b>",
+                 f"{_fecha(f['ultimo_contrato'])}<div class='peq'>{_euros(f['ultimo_importe'])}</div>",
+                 _e(f["empresa_habitual"]) or "—"]
+        filas_r.append(fila)
+    ranking = _tabla(cab, filas_r, vacio="No se ha encontrado ningún contrato de paellas.", clases=clases_r)
 
     maximo = max((m["contratos"] for m in analisis["meses"]), default=0) or 1
     meses = _tabla(
@@ -127,6 +135,20 @@ def generar(analisis: dict, ahora: datetime, ruta: Path | None = None, avisos: l
         clases=["num", "", "", "num", "peq", "peq", ""],
     )
 
+    bloque_calendario = (
+        "<h2>{n}. Calendario de envíos de la propuesta</h2>"
+        f"<p>Cada ayuntamiento aparece en el mes en que conviene escribirle: {antelacion} meses antes del mes "
+        f"en que suele contratar las paellas.</p>{calendario}"
+    )
+    titulo_ranking = "Ayuntamientos que más contratan paellas" if demanda else "Ayuntamientos que contratan paellas"
+    explicacion = ("<p>Ordenados por número de contratos de paellas, sumando contratos menores y licitaciones.</p>"
+                   if demanda else "")
+    leyenda_html = "".join(f"<li><span class='p p{n}'>{n}</span> {escape(t)}</li>" for n, t in PRIORIDADES.items())
+    bloque_ranking = (f"<h2>{{n}}. {titulo_ranking}</h2>{explicacion}"
+                      f"<ul class='peq'>{leyenda_html}</ul>{ranking}")
+    orden_bloques = [bloque_ranking, bloque_calendario] if demanda else [bloque_calendario, bloque_ranking]
+    bloques = "\n\n".join(b.replace("{n}", str(i)) for i, b in enumerate(orden_bloques, start=1))
+
     leyenda = "".join(f"<li><span class='p p{n}'>{n}</span> {escape(t)}</li>" for n, t in PRIORIDADES.items())
     avisos_html = "".join(f"<p class='aviso'>{escape(a)}</p>" for a in (avisos or []))
 
@@ -160,13 +182,7 @@ th {{ background: #f2f6fb; font-weight: 600; }} .num {{ text-align: right; white
 <p class="peq">{g['contratos_menores']} contratos menores y {g['licitaciones']} licitaciones.
 Importes sin IVA; {g['con_importe']} de {g['contratos']} contratos indican importe.</p>
 
-<h2>1. Calendario de envíos de la propuesta</h2>
-<p>Cada ayuntamiento aparece en el mes en que conviene escribirle: {antelacion} meses antes del mes en que suele contratar las paellas.</p>
-{calendario}
-
-<h2>2. Ayuntamientos que contratan paellas</h2>
-<ul class="peq">{leyenda}</ul>
-{ranking}
+{bloques}
 
 <h2>3. En qué meses se contratan</h2>
 <p class="peq">Fecha de adjudicación del contrato, que suele ser unas semanas antes de la fiesta.</p>
