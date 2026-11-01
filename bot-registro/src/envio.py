@@ -212,6 +212,51 @@ def ejecutar(config: dict, log, prueba: bool, maximo: int | None, confirmar: boo
     return resultados
 
 
+def descargar_pendientes(config: dict, log) -> None:
+    """Descarga los justificantes de los registros ENVIADO que no lo tienen, desde la página del registro."""
+    from comun import nombre_archivo_seguro
+    from rec import AdaptadorREC, cargar_flujo_rec
+
+    hoja = HojaControl()
+    pendientes = [f for f in hoja if f.get("estado") == ENVIADO and f.get("url_registro")
+                  and not (f.get("justificante") and ruta_proyecto(str(f["justificante"])).exists())]
+    sin_url = [f for f in hoja if f.get("estado") == ENVIADO and not f.get("url_registro")
+               and not (f.get("justificante") and ruta_proyecto(str(f["justificante"])).exists())]
+    for f in sin_url:
+        log.warning(f"{f['municipio']}: sin dirección del registro guardada; descargar a mano desde 'Mis registros' "
+                    f"({f.get('num_registro')})")
+    if not pendientes:
+        log.info("No hay justificantes pendientes de descargar con dirección guardada.")
+        return
+    flujo = cargar_flujo_rec()
+    navegador = Navegador(config)
+    try:
+        adaptador = AdaptadorREC(navegador, flujo, config, log)
+        motor = adaptador.motor
+        cfg = flujo.seccion("justificante")
+        for fila in pendientes:
+            motor.contexto = {}
+            navegador.pagina.goto(fila["url_registro"])
+            # si la sesión caducó: los mismos pasos de inicio de sesión que la apertura
+            motor.ejecutar_pasos([p for p in flujo.seccion("apertura") if "si_pantalla" in p])
+            if not motor.coincide(cfg["pantalla"]):
+                navegador.pagina.goto(fila["url_registro"])
+            motor.exigir(cfg["pantalla"], 60)
+            destino = ruta_proyecto("justificantes") / f"{fila['dir3_ayto']}_{nombre_archivo_seguro(fila['municipio'])}.pdf"
+            destino.parent.mkdir(exist_ok=True)
+            try:
+                adaptador.descargar_justificante(cfg["descargar"], destino)
+                fila["justificante"] = str(destino.relative_to(ruta_proyecto(".")))
+                fila["notas"] = ""
+                hoja.guardar()
+                log.info(f"{fila['municipio']}: justificante guardado en {destino}")
+            except Exception as e:  # noqa: BLE001
+                log.error(f"{fila['municipio']}: no se pudo descargar ({str(e).splitlines()[0]})")
+    finally:
+        hoja.guardar()
+        navegador.cerrar()
+
+
 def procesar(hoja: HojaControl, fila: dict, adaptador: Adaptador, config: dict, log, prueba: bool,
              confirmar: bool, entrada=input) -> str:
     # 1. Comprobación previa: nunca se repite un envío.
@@ -283,6 +328,7 @@ def procesar(hoja: HojaControl, fila: dict, adaptador: Adaptador, config: dict, 
         fecha_envio=datos["fecha_envio"],
         justificante=datos["justificante"],
         notas=datos["aviso"],
+        url_registro=datos.get("url_registro", ""),
     )
     hoja.guardar()
     log.info(f"    ENVIADO: registro {datos['num_registro']} ({datos['fecha_envio']}) {datos['aviso']}")

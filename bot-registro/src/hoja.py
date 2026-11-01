@@ -50,6 +50,7 @@ COLUMNAS = [
     "web_dir3",
     "nif_ayto",
     "homonimos",
+    "url_registro",
     "plataforma_sede",
     "fecha_deteccion",
 ]

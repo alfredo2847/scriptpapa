@@ -46,6 +46,12 @@ def cmd_enviar(args, config, log):
                    solo=args.dir3, reintentar_errores=args.reintentar_errores)
 
 
+def cmd_justificantes(args, config, log):
+    import envio
+
+    envio.descargar_pendientes(config, log)
+
+
 def cmd_informe(args, config, log):
     import informe
 
@@ -137,6 +143,9 @@ def construir_parser() -> argparse.ArgumentParser:
     s.add_argument("--reintentar-errores", action="store_true",
                    help="incluir los que están en ERROR (nunca los ENVIADO ni REVISAR)")
     s.set_defaults(func=cmd_enviar)
+
+    s = sub.add_parser("descargar-justificantes", help="descargar los justificantes que falten de registros ya enviados")
+    s.set_defaults(func=cmd_justificantes)
 
     s = sub.add_parser("informe", help="resumen y datos/manuales.xlsx")
     s.set_defaults(func=cmd_informe)

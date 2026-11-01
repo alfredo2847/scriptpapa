@@ -89,6 +89,42 @@ class Adaptador:
         finally:
             self.motor.aceptar_dialogos = False
 
+    def descargar_justificante(self, selector: str, destino: Path) -> None:
+        """Pulsa el botón de descarga y guarda el PDF. Prueba un clic normal, uno forzado y uno por
+        JavaScript; si el PDF se abre en una pestaña en vez de descargarse, lo guarda desde ella."""
+        pagina = self.motor.pagina
+        contexto = self.motor.navegador.contexto
+        self.motor._pausa(3)  # la página del justificante termina de cargar y desaparecen los avisos
+        boton = self.motor.localizar(selector)
+        boton.scroll_into_view_if_needed(timeout=5000)
+        clics = [
+            lambda: boton.click(timeout=10000),
+            lambda: boton.click(timeout=10000, force=True),
+            lambda: boton.evaluate("e => (e.shadowRoot && e.shadowRoot.querySelector('button') || e).click()"),
+        ]
+        ultimo = None
+        for clic in clics:
+            pestanas_antes = set(contexto.pages)
+            try:
+                with pagina.expect_download(timeout=20000) as descarga:
+                    clic()
+                descarga.value.save_as(str(destino))
+                return
+            except Exception as e:  # noqa: BLE001 - se prueba la siguiente forma
+                ultimo = e
+            # ¿se abrió el PDF en otra pestaña?
+            for nueva in set(contexto.pages) - pestanas_antes:
+                try:
+                    nueva.wait_for_load_state(timeout=10000)
+                    respuesta = contexto.request.get(nueva.url)
+                    if respuesta.ok and respuesta.body()[:5] == b"%PDF-":
+                        destino.write_bytes(respuesta.body())
+                        nueva.close()
+                        return
+                except Exception as e:  # noqa: BLE001
+                    ultimo = e
+        raise ultimo or RuntimeError("no se obtuvo el PDF")
+
     def guardar_justificante(self, fila: dict) -> dict:
         """Devuelve {num_registro, fecha_envio, justificante, aviso}."""
         cfg = self.flujo.seccion("justificante")
@@ -100,6 +136,7 @@ class Adaptador:
             m = re.search(cfg["regex_num_registro"], numero)
             numero = (m.group(1) if m and m.groups() else m.group(0)) if m else ""
         resultado = {
+            "url_registro": self.motor.pagina.url,
             "num_registro": numero.strip(),
             "fecha_envio": campos.get("fecha", "").strip() or ahora_texto(),
             "justificante": "",
@@ -109,9 +146,7 @@ class Adaptador:
             CARPETA_JUSTIFICANTES.mkdir(exist_ok=True)
             destino = CARPETA_JUSTIFICANTES / f"{fila['dir3_ayto']}_{nombre_archivo_seguro(fila['municipio'])}.pdf"
             try:
-                with self.motor.pagina.expect_download(timeout=60000) as descarga:
-                    self.motor.localizar(cfg["descargar"]).click()
-                descarga.value.save_as(str(destino))
+                self.descargar_justificante(cfg["descargar"], destino)
                 resultado["justificante"] = str(destino.relative_to(RAIZ))
             except Exception as e:
                 resultado["aviso"] = f"No se pudo descargar el justificante ({str(e).splitlines()[0]}); descargarlo a mano"
