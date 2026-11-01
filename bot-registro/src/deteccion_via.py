@@ -185,7 +185,8 @@ def buscar_sede(municipio: str, web_dir3: str, timeout: float, plataformas: dict
     return primera_sede, ""
 
 
-def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = None) -> None:
+def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = None,
+             solo_rec: bool = False) -> None:
     hoja = HojaControl()
     if not len(hoja):
         raise SystemExit("La hoja de control está vacía: ejecuta antes 'python src/main.py inventario'.")
@@ -206,6 +207,11 @@ def ejecutar(config: dict, log, sin_rec: bool = False, solo: list[str] | None = 
         en_rec = _detectar_rec(config, log, hoja, filas)
     rec_comprobado = en_rec is not None
     en_rec = en_rec or set()
+
+    if solo_rec:
+        hoja.guardar()
+        resumen(hoja, config, log)
+        return
 
     plataformas = cargar_plataformas()
     timeout = float(config["deteccion"].get("timeout_http_seg", 10))

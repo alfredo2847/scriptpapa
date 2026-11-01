@@ -35,7 +35,7 @@ def cmd_inventario(args, config, log):
 def cmd_detectar(args, config, log):
     import deteccion_via
 
-    deteccion_via.ejecutar(config, log, sin_rec=args.sin_rec, solo=args.dir3)
+    deteccion_via.ejecutar(config, log, sin_rec=args.sin_rec, solo=args.dir3, solo_rec=args.solo_rec)
 
 
 def cmd_enviar(args, config, log):
@@ -123,6 +123,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("detectar", help="fase 2: vía de envío de cada ayuntamiento (no envía nada)")
     s.add_argument("--sin-rec", action="store_true", help="no abrir el REC; solo buscar sedes")
+    s.add_argument("--solo-rec", action="store_true", help="solo comprobar el REC (no vuelve a buscar sedes)")
     s.add_argument("--dir3", nargs="+", help="solo estos ayuntamientos")
     s.set_defaults(func=cmd_detectar)
 

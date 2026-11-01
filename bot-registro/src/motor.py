@@ -295,7 +295,8 @@ class Motor:
         """Localiza exactamente un elemento visible; si hay varios o ninguno, es un error."""
         from playwright.sync_api import Error as ErrorPlaywright
 
-        loc = (base or self.pagina).locator(selector)
+        # Solo elementos visibles: los componentes del REG llevan además inputs ocultos internos.
+        loc = (base or self.pagina).locator(f"{selector} >> visible=true")
         try:
             loc.wait_for(state="visible", timeout=self.timeout_accion)
         except ErrorPlaywright as e:

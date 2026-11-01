@@ -9,7 +9,7 @@
 #
 # Notas del formulario:
 # - Los campos son componentes propios (dnt-input, dnt-select, dnt-checkbox…). Los
-#   selectores CSS de Playwright entran en su shadow DOM: 'dnt-input[formcontrolname="subject"] input'.
+#   selectores CSS de Playwright entran en su shadow DOM: 'dnt-input[formcontrolname="subject"] input:not([type="hidden"])'.
 # - Los desplegables se abren y se pulsa la opción con la acción 'elegir'.
 # - Dirección, teléfono y correo aparecen dos veces (representante e interesado):
 #   '>> nth=0' es el del representante y '>> nth=1' el del interesado.
@@ -79,25 +79,25 @@ rellenado:
       - clic: 'dnt-radio-group[formcontrolname="typeRepresented"] >> text=Representante'
       - esperar: 1
       - elegir: {selector: 'dnt-select[id="represented.streetType"] [role="combobox"]', valor: "{via_tipo}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="streetName"] >> nth=0 >> input', valor: "{via_nombre}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="streetName"] >> nth=0 >> input:not([type="hidden"])', valor: "{via_nombre}"}
       - elegir: {selector: 'dnt-select[id="represented.province"] [role="combobox"]', valor: "{provincia}"}
       - esperar: 1
       - elegir: {selector: 'dnt-select[id="represented.city"] [role="combobox"]', valor: "{poblacion}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="zipCode"] >> nth=0 >> input', valor: "{cp}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="phone"] >> nth=0 >> input', valor: "{telefono}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="email"] >> nth=0 >> input', valor: "{email}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="zipCode"] >> nth=0 >> input:not([type="hidden"])', valor: "{cp}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="phone"] >> nth=0 >> input:not([type="hidden"])', valor: "{telefono}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="email"] >> nth=0 >> input:not([type="hidden"])', valor: "{email}"}
       - elegir: {selector: 'dnt-select[id="tipoDoc"] [role="combobox"]', valor: "CIF"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="docNumber"] input', valor: "{cif}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="docNumber"] input:not([type="hidden"])', valor: "{cif}"}
       - esperar: 1
-      - rellenar: {selector: 'dnt-input[formcontrolname="businessName"] input', valor: "{razon_social}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="businessName"] input:not([type="hidden"])', valor: "{razon_social}"}
       - elegir: {selector: 'dnt-select[id="streetType"] [role="combobox"]', valor: "{via_tipo}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="streetName"] >> nth=1 >> input', valor: "{via_nombre}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="streetName"] >> nth=1 >> input:not([type="hidden"])', valor: "{via_nombre}"}
       - elegir: {selector: 'dnt-select[id="interested.province"] [role="combobox"]', valor: "{provincia}"}
       - esperar: 1
       - elegir: {selector: 'dnt-select[id="interested.city"] [role="combobox"]', valor: "{poblacion}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="zipCode"] >> nth=1 >> input', valor: "{cp}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="phone"] >> nth=1 >> input', valor: "{telefono}"}
-      - rellenar: {selector: 'dnt-input[formcontrolname="email"] >> nth=1 >> input', valor: "{email}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="zipCode"] >> nth=1 >> input:not([type="hidden"])', valor: "{cp}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="phone"] >> nth=1 >> input:not([type="hidden"])', valor: "{telefono}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="email"] >> nth=1 >> input:not([type="hidden"])', valor: "{email}"}
       - marcar:
           selector: 'dnt-checkbox[formcontrolname="emailAlert"] input[type="checkbox"]'
           clic: 'dnt-checkbox[formcontrolname="emailAlert"] label'
@@ -106,7 +106,7 @@ rellenado:
   - pantalla: paso2
     acciones:
       - elegir_destinatario: true
-      - rellenar: {selector: 'dnt-input[formcontrolname="subject"] input', valor: "{asunto}"}
+      - rellenar: {selector: 'dnt-input[formcontrolname="subject"] input:not([type="hidden"])', valor: "{asunto}"}
       - rellenar: {selector: 'dnt-input[formcontrolname="exposes"] textarea', valor: "{expone}"}
       - rellenar: {selector: 'dnt-input[formcontrolname="solicit"] textarea', valor: "{solicita}"}
       - clic: 'role=button[name="Siguiente"][disabled=false]'
@@ -129,13 +129,13 @@ destinatario:
     - clic: 'role=button[name="Asistente de búsqueda"]'
   filtros:
     - {selector: 'dnt-select[id="administrationLevel"] [role="combobox"]', valor: "Administración Local"}
-  campo_busqueda: 'dnt-input[formcontrolname="search"] input'
+  campo_busqueda: 'dnt-input[formcontrolname="search"] input:not([type="hidden"])'
   boton_buscar: 'role=button[name="Buscar"]'
   boton_seleccionar: 'role=button[name="Seleccionar"]'
   espera_resultados_seg: 1
   confirmacion: 'dnt-select[id="destinationOrganism"]'
   cerrar:
-    - pulsar: {selector: 'dnt-input[formcontrolname="search"] input', tecla: "Escape"}
+    - pulsar: {selector: 'dnt-input[formcontrolname="search"] input:not([type="hidden"])', tecla: "Escape"}
 
 # Lectura del resumen para la verificación previa a la firma
 resumen:
