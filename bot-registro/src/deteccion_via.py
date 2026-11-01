@@ -272,10 +272,15 @@ def _detectar_rec(config, log, hoja, filas) -> set[str] | None:
         for fila in filas:
             try:
                 encontrado, _ = detector.esta_en_rec(fila["dir3_ayto"])
-            except ErrorAyuntamiento as e:
-                log.warning(f"{fila['municipio']}: no se pudo comprobar en el REC ({e})")
-                completa = False
-                continue
+            except ErrorAyuntamiento:
+                # Sesión caducada o buscador atascado: se vuelve a abrir el formulario y se reintenta una vez.
+                try:
+                    detector.preparar()
+                    encontrado, _ = detector.esta_en_rec(fila["dir3_ayto"])
+                except (ErrorAyuntamiento, PantallaDesconocida) as e:
+                    log.warning(f"{fila['municipio']}: no se pudo comprobar en el REC ({e})")
+                    completa = False
+                    continue
             comprobados.add(fila["dir3_ayto"])
             if encontrado:
                 en_rec.add(fila["dir3_ayto"])

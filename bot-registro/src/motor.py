@@ -51,6 +51,31 @@ ACCIONES = {
 }
 
 
+# Texto visible de la página entrando en los shadow DOM de los componentes (dnt-*).
+TEXTO_PROFUNDO_JS = """
+() => {
+  const partes = [];
+  const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  const recorrer = nodo => {
+    for (const hijo of nodo.childNodes) {
+      if (hijo.nodeType === Node.TEXT_NODE) {
+        const t = hijo.nodeValue.trim();
+        if (t && hijo.parentElement && visible(hijo.parentElement)) partes.push(t);
+      } else if (hijo.nodeType === Node.ELEMENT_NODE) {
+        const tag = hijo.tagName;
+        if (tag === 'SCRIPT' || tag === 'STYLE') continue;
+        if (hijo.shadowRoot) recorrer(hijo.shadowRoot);
+        recorrer(hijo);
+        if (/^(DIV|P|LI|TR|DT|DD|H[1-6]|LABEL|SECTION|ARTICLE|FIELDSET|BR|TD|TH)$/.test(tag)) partes.push('\\n');
+      }
+    }
+  };
+  recorrer(document.body);
+  return partes.join(' ').replace(/ *\\n */g, '\\n').replace(/\\n+/g, '\\n');
+}
+"""
+
+
 class DetenerTanda(Exception):
     """Detiene la tanda entera."""
 
@@ -187,6 +212,7 @@ class Motor:
         self.timeout_accion = float(ejecucion.get("timeout_accion_seg", 15)) * 1000
         self.aceptar_dialogos = False
         self.dialogos: list[str] = []
+        self._capturas_busqueda = 0
         self._paginas_con_dialogo: set[int] = set()
         self._vigilar_dialogos(navegador.pagina)
 
@@ -222,6 +248,13 @@ class Motor:
         except Exception:
             return ""
 
+    def texto_completo(self) -> str:
+        """Texto visible de la página incluido el de dentro de los componentes (shadow DOM)."""
+        try:
+            return self.pagina.evaluate(TEXTO_PROFUNDO_JS)
+        except Exception:
+            return self._texto()
+
     def coincide(self, nombre: str) -> bool:
         huella = self.flujo.pantallas[nombre]
         if huella.get("url") and not re.search(huella["url"], self.pagina.url):
@@ -237,7 +270,9 @@ class Motor:
         if etiquetas:
             texto = normalizar(self._texto())
             if not all(normalizar(e) in texto for e in etiquetas):
-                return False
+                texto = normalizar(self.texto_completo())  # textos dentro de los componentes
+                if not all(normalizar(e) in texto for e in etiquetas):
+                    return False
         return True
 
     def pantalla_actual(self) -> str | None:
@@ -409,7 +444,7 @@ class Motor:
 
     def leer_por_etiquetas(self, etiquetas: dict) -> dict:
         """Lee valores 'Etiqueta:' seguidos de su valor en la línea siguiente del texto de la página."""
-        lineas = [l.strip() for l in self._texto().splitlines() if l.strip()]
+        lineas = [l.strip() for l in self.texto_completo().splitlines() if l.strip()]
         leido = {}
         for nombre, etiqueta in (etiquetas or {}).items():
             objetivo = normalizar(etiqueta)
@@ -439,8 +474,11 @@ class Motor:
         while botones.count() == 0 and time.monotonic() < limite:
             self._pausa(0.5)
         self._pausa(float(cfg.get("espera_resultados_seg", 1)))
-        texto = self._texto()
+        texto = self.texto_completo()
         if botones.count() == 0 or f"{codigo} -" not in texto:
+            if self._capturas_busqueda < 2:
+                self._capturas_busqueda += 1
+                self.capturar(f"busqueda_sin_resultado_{codigo}")
             self.ejecutar_acciones(cfg.get("cerrar"))
             return False
         if botones.count() != 1:
