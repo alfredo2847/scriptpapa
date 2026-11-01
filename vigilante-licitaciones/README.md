@@ -20,15 +20,28 @@ puede funcionar mientras el bot está enviando.
 | `compradores` | Histórico de contratos (sobre todo contratos menores): qué ayuntamientos contratan paellas, en qué mes, por cuánto y a qué empresa | `datos/compradores.xlsx` |
 | `buscar` | Licitaciones abiertas, con plazo, que encajan | `datos/licitaciones.xlsx` |
 
-### `compradores.xlsx`
+### Análisis de compradores (`compradores`)
 
-- **municipios:** uno por fila, con `prioridad_sugerida` (1 = ya ha contratado
-  paellas o comidas populares; 2 = catering de fiestas; 3 = dudoso), los
-  `meses_en_que_contrata`, en qué mes conviene `enviar_propuesta_en` (2 meses
-  antes, configurable) y el `dir3_ayto`, que es el mismo código que la hoja del
-  bot de registro. Si quieres usar la prioridad en el bot, cópiala tú a mano.
-- **contratos:** cada contrato encontrado con su enlace.
-- **competencia:** empresas que se llevan esos contratos.
+Solo cuentan los contratos que hablan de paellas. Al terminar se abre
+`ANALISIS_COMPRADORES.html` en el navegador, con:
+
+1. **Resumen en cifras:** contratos, ayuntamientos, clientes recurrentes,
+   importe típico, rango de importes.
+2. **Calendario de envíos:** mes a mes, a qué ayuntamientos conviene enviar la
+   propuesta (2 meses antes de cuando suelen contratar; `meses_antelacion`).
+3. **Ayuntamientos:** prioridad (1 = ha contratado paellas en 2 o más años
+   distintos; 2 = en los 2 últimos años; 3 = hace más tiempo), provincia,
+   número de contratos, años, importe medio, mínimo y máximo, mes habitual,
+   último contrato y empresa habitual.
+4. **En qué meses se contratan**, con su importe medio.
+5. **Por provincia.**
+6. **Competencia:** empresas adjudicatarias, contratos e importes.
+7. **Todos los contratos**, con enlace a la Plataforma.
+8. **Limitaciones de los datos.**
+
+Lo mismo está en `datos/compradores.xlsx`, una pestaña por apartado, para
+filtrar u ordenar. La columna `dir3_ayto` es el mismo código que usa la hoja
+del bot de registro; si quieres usar algo en el bot, cópialo tú.
 
 ### `licitaciones.xlsx`
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,6 +22,7 @@ import requests  # noqa: E402
 
 import compradores  # noqa: E402
 import fichas  # noqa: E402
+import informe_compradores  # noqa: E402
 import licitaciones  # noqa: E402
 import lista  # noqa: E402
 from comun import DATOS, DESCARGAS, PROVINCIAS, VERSION, avisar, cargar_config, configurar_log  # noqa: E402
@@ -73,11 +75,27 @@ def cmd_compradores(args, config, log) -> int:
 
     hallazgos = compradores.filtrar(todos(), config)
     res = compradores.guardar(hallazgos, config["compradores"]["meses_antelacion"])
-    log.info(f"\nListo: {res['contratos']} contratos en {res['municipios']} municipios "
-             f"({res['prioridad_1']} con prioridad 1). Hoja: {compradores.RUTA}")
+    avisos = []
+    if fallidas:
+        avisos.append(f"{len(fallidas)} archivos no se pudieron descargar, así que puede faltar parte del "
+                      "histórico. Se reintentan en la próxima ejecución.")
+    informe = informe_compradores.generar(res["analisis"], datetime.now(), avisos=avisos)
+    log.info(f"\nListo: {res['contratos']} contratos de paellas en {res['municipios']} ayuntamientos "
+             f"({res['prioridad_1']} clientes recurrentes).")
+    for f in res["analisis"]["municipios"][:15]:
+        importe = f"{f['importe_medio']:,.0f} €".replace(",", ".") if f["importe_medio"] else "importe ?"
+        log.info(f"  [{f['prioridad']}] {f['municipio']} ({f['provincia'] or '?'}): {f['contratos']} contrato(s), "
+                 f"{importe} de media, suele contratar en {f['mes_habitual'] or '?'} "
+                 f"-> enviar propuesta en {f['enviar_propuesta_en'] or '?'}")
+    log.info(f"\nInforme: {informe}\nHoja:    {compradores.RUTA}")
     if fallidas:
         log.warning(f"\n{len(fallidas)} archivos no se pudieron descargar (puede que aún no existan). "
                     "Si faltan años enteros, descárgalos a mano y usa --archivo <ruta>.")
+    if not args.no_abrir and sys.platform == "win32":
+        try:
+            os.startfile(informe)  # type: ignore[attr-defined]
+        except OSError:
+            pass
     return 0
 
 
@@ -227,6 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--anos", type=int, help="años completos hacia atrás (por defecto, config.yaml)")
     s.add_argument("--fuentes", help="menores,licitaciones,agregadas (por defecto, todas)")
     s.add_argument("--archivo", nargs="+", help="usar ZIP/ATOM ya descargados en vez de descargarlos")
+    s.add_argument("--no-abrir", action="store_true", help="no abrir el informe al terminar")
 
     s = sub.add_parser("buscar", help="licitaciones abiertas que encajan -> datos/licitaciones.xlsx")
     s.add_argument("--dias", type=float, help="mirar N días atrás en vez de desde la última búsqueda")

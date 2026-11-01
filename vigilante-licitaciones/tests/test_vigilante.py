@@ -113,33 +113,48 @@ def test_feed_reciente_sigue_paginas_y_para():
 
 
 def test_compradores(tmp_path, config):
-    config["solo_paellas"] = False
     datos = feed(
-        entrada("1", "Paellas fiestas 2024", estado="RES", adjudicatario="Paellas Pepe SL",
+        entrada("1", "Paellas fiestas patronales 2024", estado="RES", adjudicatario="Paellas Pepe SL",
                 adjudicado="8000", fecha_adj="2024-07-10"),
-        entrada("2", "Paellas fiestas 2025", estado="RES", adjudicatario="Arrocería Sol SL",
+        entrada("2", "Paellas gigantes fiestas 2025", estado="RES", adjudicatario="Arrocería Sol SL",
                 adjudicado="9000", fecha_adj="2025-07-15"),
-        entrada("3", "Catering fiestas", estado="RES", organo="Ajuntament d'Alzira", ciudad="Alzira",
+        entrada("3", "Concurso de paellas", estado="RES", organo="Ajuntament d'Alzira", ciudad="Alzira",
                 dir3="L01460176", cp="46600", adjudicatario="Paellas Pepe SL", adjudicado="5000",
                 fecha_adj="2025-08-20"),
-        entrada("4", "Paellas en Madrid", nuts="ES300", dir3="L01280796", cp="28001", ciudad="Madrid"),
-        entrada("5", "Limpieza viaria", cpv="90610000"),
+        entrada("4", "Paellada popular", estado="RES", organo="Ayuntamiento de Elche", ciudad="Elche",
+                dir3="L01030659", cp="03203", nuts="ES521", adjudicado="3000", adjudicatario="Pepe SL",
+                fecha_adj="2022-03-01"),
+        entrada("5", "Catering fiestas", estado="RES", adjudicatario="Catering SL", adjudicado="5000",
+                fecha_adj="2025-08-20"),
+        entrada("6", "Paellas en Madrid", nuts="ES300", dir3="L01280796", cp="28001", ciudad="Madrid"),
+        entrada("7", "Limpieza viaria", cpv="90610000"),
     )
     archivo = tmp_path / "contratosMenores_2025.zip"
     with zipfile.ZipFile(archivo, "w") as z:
         z.writestr("a.atom", datos)
     hallazgos = compradores.filtrar(leer_archivo(archivo, "menores"), config)
-    assert len(hallazgos) == 3
-    municipios = compradores.resumen_municipios(hallazgos, 2)
-    sueca, alzira = municipios
-    assert sueca["municipio"] == "Sueca" and sueca["prioridad_sugerida"] == 1
-    assert sueca["contratos"] == 2 and sueca["enviar_propuesta_en"] == "may"
-    assert sueca["dir3_ayto"] == "L01462357"
-    assert alzira["municipio"] == "Alzira" and alzira["prioridad_sugerida"] == 2
-    competencia = compradores.resumen_competencia(hallazgos)
-    assert competencia[0]["empresa"] == "Paellas Pepe SL" and competencia[0]["contratos"] == 2
-    res = compradores.guardar(hallazgos, 2, tmp_path / "compradores.xlsx")
-    assert res == {"contratos": 3, "municipios": 2, "prioridad_1": 1}
+    assert len(hallazgos) == 4  # ni catering, ni Madrid, ni limpieza
+    analisis = compradores.analizar(hallazgos, 2, date(2026, 11, 1))
+    sueca, alzira, elche = analisis["municipios"]
+    assert sueca["municipio"] == "Sueca" and sueca["prioridad"] == 1 and sueca["anos"] == "2024, 2025"
+    assert sueca["provincia"] == "Valencia" and sueca["importe_medio"] == 8500
+    assert sueca["mes_habitual"] == "julio" and sueca["enviar_propuesta_en"] == "mayo"
+    assert alzira["prioridad"] == 2 and alzira["enviar_propuesta_en"] == "junio"
+    assert elche["prioridad"] == 3 and elche["provincia"] == "Alicante"
+    assert analisis["general"]["importe_mediana"] == 6500
+    assert analisis["calendario"][4]["municipios"].startswith("Sueca")
+    assert analisis["meses"][6]["contratos"] == 2
+    assert {p["provincia"] for p in analisis["provincias"]} == {"Valencia", "Alicante"}
+    assert analisis["competencia"][0]["empresa"] == "Paellas Pepe SL"
+    assert analisis["contratos"][1]["paella_gigante"] == "sí"
+    res = compradores.guardar(hallazgos, 2, tmp_path / "compradores.xlsx", date(2026, 11, 1))
+    assert (res["contratos"], res["municipios"], res["prioridad_1"]) == (4, 3, 1)
+
+    import informe_compradores
+    html = informe_compradores.generar(res["analisis"], AHORA, tmp_path / "a.html").read_text(encoding="utf-8")
+    assert "Calendario de envíos" in html and "Sueca" in html and "8.500 €" in html
+    vacio = informe_compradores.generar(compradores.analizar([], 2), AHORA, tmp_path / "v.html")
+    assert "No se ha encontrado ningún contrato de paellas" in vacio.read_text(encoding="utf-8")
 
 
 def test_licitaciones_conserva_lo_escrito_a_mano(tmp_path, config):

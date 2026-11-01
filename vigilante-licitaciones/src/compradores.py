@@ -1,15 +1,16 @@
 """Histórico: qué ayuntamientos contratan paellas, cuándo, por cuánto y a quién.
 
-Genera datos/compradores.xlsx con tres pestañas:
-- municipios: uno por fila, con prioridad sugerida y mes para enviar la propuesta;
-- contratos: cada contrato encontrado;
-- competencia: empresas adjudicatarias.
+Genera dos cosas:
+- datos/compradores.xlsx, con una pestaña por apartado del análisis;
+- ANALISIS_COMPRADORES.html, el informe para leer (ver informe_compradores.py).
 
-La hoja se rehace entera en cada ejecución (no tiene columnas para rellenar a mano).
+Solo cuentan los contratos que hablan de paellas (ver filtros.puntuar). Se
+rehace entero en cada ejecución.
 """
 
 from __future__ import annotations
 
+import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -20,11 +21,19 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from comun import DATOS, MESES, guardar_libro
-from filtros import ALTO, MEDIO, ORDEN_ENCAJE, dir3_ayuntamiento, en_zona, municipio, puntuar
+from comun import DATOS, MESES, guardar_libro, normalizar
+from filtros import dir3_ayuntamiento, en_zona, municipio, provincia, puntuar
 from placsp import ESTADOS, Contrato
 
 RUTA = DATOS / "compradores.xlsx"
+MESES_NOMBRE = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+                "septiembre", "octubre", "noviembre", "diciembre"]
+
+PRIORIDADES = {
+    1: "Cliente recurrente: ha contratado paellas en 2 o más años distintos",
+    2: "Ha contratado paellas en los 2 últimos años",
+    3: "Contrató paellas hace más de 2 años",
+}
 
 
 @dataclass
@@ -34,6 +43,7 @@ class Hallazgo:
     motivo: str
     municipio: str
     dir3: str
+    provincia: str = ""
 
     @property
     def fecha(self) -> date | None:
@@ -49,6 +59,19 @@ class Hallazgo:
         c = self.contrato
         return c.importe_adjudicacion if c.importe_adjudicacion is not None else c.importe
 
+    @property
+    def via(self) -> str:
+        return "Contrato menor" if self.contrato.fuente == "menores" else "Licitación"
+
+    @property
+    def gigante(self) -> bool:
+        texto = normalizar(self.contrato.texto)
+        return any(p in texto for p in ("gigant", "gegant", "monumental"))
+
+    @property
+    def objeto(self) -> str:
+        return self.contrato.objeto or self.contrato.titulo
+
 
 def filtrar(contratos: Iterable[Contrato], config: dict) -> list[Hallazgo]:
     """Se queda con la última versión de cada contrato de la zona que encaja."""
@@ -63,43 +86,137 @@ def filtrar(contratos: Iterable[Contrato], config: dict) -> list[Hallazgo]:
         if previo and (c.actualizado or datetime.min) <= (previo.contrato.actualizado or datetime.min):
             continue
         hallazgos[c.id] = Hallazgo(c, resultado[0], resultado[1], municipio(c),
-                                   dir3_ayuntamiento(c, config["provincias"]))
+                                   dir3_ayuntamiento(c, config["provincias"]),
+                                   provincia(c, config["provincias"]))
     return list(hallazgos.values())
 
 
-def _mes_envio(mes: int, antelacion: int) -> str:
-    return MESES[(mes - 1 - antelacion) % 12]
+# ---------------------------------------------------------------------------
+# Análisis
+
+def _redondo(valor: float | None) -> float | None:
+    return round(valor, 2) if valor is not None else None
 
 
-def resumen_municipios(hallazgos: list[Hallazgo], antelacion: int = 2) -> list[dict]:
+def _mes_envio(mes: int, antelacion: int) -> int:
+    return (mes - 1 - antelacion) % 12 + 1
+
+
+def resumen_general(hallazgos: list[Hallazgo]) -> dict:
+    importes = [h.importe for h in hallazgos if h.importe is not None]
+    fechas = [h.fecha for h in hallazgos if h.fecha]
+    municipios = {h.dir3 or h.municipio for h in hallazgos}
+    return {
+        "contratos": len(hallazgos),
+        "ayuntamientos": len(municipios),
+        "contratos_menores": sum(h.via == "Contrato menor" for h in hallazgos),
+        "licitaciones": sum(h.via == "Licitación" for h in hallazgos),
+        "desde": min(fechas) if fechas else None,
+        "hasta": max(fechas) if fechas else None,
+        "importe_total": _redondo(sum(importes)) if importes else None,
+        "importe_medio": _redondo(statistics.mean(importes)) if importes else None,
+        "importe_mediana": _redondo(statistics.median(importes)) if importes else None,
+        "importe_min": _redondo(min(importes)) if importes else None,
+        "importe_max": _redondo(max(importes)) if importes else None,
+        "con_importe": len(importes),
+    }
+
+
+def resumen_municipios(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date | None = None) -> list[dict]:
+    hoy = hoy or date.today()
     grupos: dict[str, list[Hallazgo]] = defaultdict(list)
     for h in hallazgos:
-        clave = h.dir3 or h.municipio.lower() or h.contrato.organo.lower()
-        grupos[clave].append(h)
+        grupos[h.dir3 or normalizar(h.municipio) or normalizar(h.contrato.organo)].append(h)
 
     filas = []
     for grupo in grupos.values():
         grupo.sort(key=lambda h: h.fecha or date.min, reverse=True)
+        anos = sorted({h.fecha.year for h in grupo if h.fecha})
         meses = Counter(h.fecha.month for h in grupo if h.fecha)
-        mes_principal = meses.most_common(1)[0][0] if meses else None
-        encajes = {h.encaje for h in grupo}
-        prioridad = 1 if ALTO in encajes else 2 if MEDIO in encajes else 3
+        mes_habitual = meses.most_common(1)[0][0] if meses else None
+        importes = [h.importe for h in grupo if h.importe is not None]
+        empresas = Counter(a for h in grupo for a in h.contrato.adjudicatarios)
         ultimo = grupo[0]
+        if len(anos) >= 2:
+            prioridad = 1
+        elif anos and anos[-1] >= hoy.year - 2:
+            prioridad = 2
+        else:
+            prioridad = 3
         filas.append({
-            "prioridad_sugerida": prioridad,
-            "municipio": next((h.municipio for h in grupo if h.municipio), ""),
-            "dir3_ayto": next((h.dir3 for h in grupo if h.dir3), ""),
+            "prioridad": prioridad,
+            "municipio": next((h.municipio for h in grupo if h.municipio), ultimo.contrato.organo),
+            "provincia": next((h.provincia for h in grupo if h.provincia), ""),
             "contratos": len(grupo),
-            "de_encaje_alto": sum(h.encaje == ALTO for h in grupo),
-            "meses_en_que_contrata": ", ".join(f"{MESES[m - 1]} ({n})" for m, n in sorted(meses.items())),
-            "enviar_propuesta_en": _mes_envio(mes_principal, antelacion) if mes_principal else "",
+            "anos": ", ".join(str(a) for a in anos),
+            "importe_medio": _redondo(statistics.mean(importes)) if importes else None,
+            "importe_min": _redondo(min(importes)) if importes else None,
+            "importe_max": _redondo(max(importes)) if importes else None,
+            "importe_total": _redondo(sum(importes)) if importes else None,
+            "mes_habitual": MESES_NOMBRE[mes_habitual - 1] if mes_habitual else "",
+            "meses": ", ".join(f"{MESES[m - 1]} ({n})" for m, n in sorted(meses.items())),
+            "enviar_propuesta_en": MESES_NOMBRE[_mes_envio(mes_habitual, antelacion) - 1] if mes_habitual else "",
             "ultimo_contrato": ultimo.fecha,
-            "ultimo_objeto": ultimo.contrato.objeto or ultimo.contrato.titulo,
-            "ultimo_importe": ultimo.importe,
-            "adjudicatarios": "; ".join(sorted({a for h in grupo for a in h.contrato.adjudicatarios})),
-            "organos": "; ".join(sorted({h.contrato.organo for h in grupo if h.contrato.organo})),
+            "ultimo_importe": _redondo(ultimo.importe),
+            "ultimo_objeto": ultimo.objeto,
+            "empresa_habitual": empresas.most_common(1)[0][0] if empresas else "",
+            "empresas": "; ".join(sorted(empresas)),
+            "via": ", ".join(sorted({h.via for h in grupo})),
+            "dir3_ayto": next((h.dir3 for h in grupo if h.dir3), ""),
+            "_mes_envio": _mes_envio(mes_habitual, antelacion) if mes_habitual else None,
         })
-    filas.sort(key=lambda f: (f["prioridad_sugerida"], -f["contratos"], f["municipio"]))
+    filas.sort(key=lambda f: (f["prioridad"], -f["contratos"], -(f["importe_medio"] or 0), f["municipio"]))
+    return filas
+
+
+def resumen_meses(hallazgos: list[Hallazgo]) -> list[dict]:
+    por_mes: dict[int, list[Hallazgo]] = defaultdict(list)
+    for h in hallazgos:
+        if h.fecha:
+            por_mes[h.fecha.month].append(h)
+    filas = []
+    for mes in range(1, 13):
+        grupo = por_mes.get(mes, [])
+        importes = [h.importe for h in grupo if h.importe is not None]
+        filas.append({
+            "mes": MESES_NOMBRE[mes - 1],
+            "contratos": len(grupo),
+            "importe_total": _redondo(sum(importes)) if importes else None,
+            "importe_medio": _redondo(statistics.mean(importes)) if importes else None,
+            "municipios": "; ".join(sorted({h.municipio for h in grupo if h.municipio})),
+        })
+    return filas
+
+
+def calendario_envios(municipios: list[dict]) -> list[dict]:
+    """Mes a mes, a qué ayuntamientos conviene enviar la propuesta."""
+    por_mes: dict[int, list[dict]] = defaultdict(list)
+    for f in municipios:
+        if f["_mes_envio"]:
+            por_mes[f["_mes_envio"]].append(f)
+    return [{
+        "enviar_en": MESES_NOMBRE[mes - 1],
+        "ayuntamientos": len(por_mes.get(mes, [])),
+        "municipios": "; ".join(f"{f['municipio']} (contrata en {f['mes_habitual']})"
+                                for f in sorted(por_mes.get(mes, []), key=lambda f: f["prioridad"])),
+    } for mes in range(1, 13)]
+
+
+def resumen_provincias(hallazgos: list[Hallazgo]) -> list[dict]:
+    grupos: dict[str, list[Hallazgo]] = defaultdict(list)
+    for h in hallazgos:
+        grupos[h.provincia or "Sin identificar"].append(h)
+    filas = []
+    for nombre, grupo in grupos.items():
+        importes = [h.importe for h in grupo if h.importe is not None]
+        filas.append({
+            "provincia": nombre,
+            "contratos": len(grupo),
+            "ayuntamientos": len({h.dir3 or h.municipio for h in grupo}),
+            "importe_total": _redondo(sum(importes)) if importes else None,
+            "importe_medio": _redondo(statistics.mean(importes)) if importes else None,
+        })
+    filas.sort(key=lambda f: -f["contratos"])
     return filas
 
 
@@ -108,39 +225,66 @@ def resumen_competencia(hallazgos: list[Hallazgo]) -> list[dict]:
     for h in hallazgos:
         for a in h.contrato.adjudicatarios:
             grupos[a].append(h)
-    filas = [{
-        "empresa": empresa,
-        "contratos": len(g),
-        "importe_total": round(sum(h.importe or 0 for h in g), 2),
-        "municipios": "; ".join(sorted({h.municipio for h in g if h.municipio})),
-        "ultimo": max((h.fecha for h in g if h.fecha), default=None),
-    } for empresa, g in grupos.items()]
-    filas.sort(key=lambda f: (-f["contratos"], -f["importe_total"]))
+    filas = []
+    for empresa, g in grupos.items():
+        importes = [h.importe for h in g if h.importe is not None]
+        filas.append({
+            "empresa": empresa,
+            "contratos": len(g),
+            "importe_total": _redondo(sum(importes)) if importes else None,
+            "importe_medio": _redondo(statistics.mean(importes)) if importes else None,
+            "municipios": "; ".join(sorted({h.municipio for h in g if h.municipio})),
+            "ultimo": max((h.fecha for h in g if h.fecha), default=None),
+        })
+    filas.sort(key=lambda f: (-f["contratos"], -(f["importe_total"] or 0)))
     return filas
 
 
 def filas_contratos(hallazgos: list[Hallazgo]) -> list[dict]:
-    orden = sorted(hallazgos, key=lambda h: (ORDEN_ENCAJE[h.encaje], -(h.fecha or date.min).toordinal()))
+    orden = sorted(hallazgos, key=lambda h: h.fecha or date.min, reverse=True)
     return [{
-        "encaje": h.encaje,
         "fecha": h.fecha,
         "municipio": h.municipio,
-        "organo": h.contrato.organo,
-        "objeto": h.contrato.objeto or h.contrato.titulo,
-        "importe": h.importe,
-        "adjudicatario": "; ".join(h.contrato.adjudicatarios),
+        "provincia": h.provincia,
+        "objeto": h.objeto,
+        "importe": _redondo(h.importe),
+        "empresa": "; ".join(h.contrato.adjudicatarios),
+        "via": h.via,
+        "paella_gigante": "sí" if h.gigante else "",
         "estado": ESTADOS.get(h.contrato.estado, h.contrato.estado),
-        "motivo": h.motivo,
-        "fuente": h.contrato.fuente,
+        "organo": h.contrato.organo,
         "dir3_ayto": h.dir3,
         "enlace": h.contrato.enlace,
         "id": h.contrato.id,
     } for h in orden]
 
 
+def analizar(hallazgos: list[Hallazgo], antelacion: int = 2, hoy: date | None = None) -> dict:
+    municipios = resumen_municipios(hallazgos, antelacion, hoy)
+    return {
+        "general": resumen_general(hallazgos),
+        "municipios": municipios,
+        "meses": resumen_meses(hallazgos),
+        "calendario": calendario_envios(municipios),
+        "provincias": resumen_provincias(hallazgos),
+        "competencia": resumen_competencia(hallazgos),
+        "contratos": filas_contratos(hallazgos),
+        "antelacion": antelacion,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Excel
+
+FORMATO_EUROS = '#,##0.00 "€"'
+COLUMNAS_EUROS = ("importe", "importe_medio", "importe_min", "importe_max", "importe_total", "ultimo_importe")
+COLUMNAS_FECHA = ("fecha", "ultimo_contrato", "ultimo")
+
+
 def _pestana(libro: Workbook, titulo: str, filas: list[dict], primera: bool = False) -> None:
     hoja = libro.active if primera else libro.create_sheet()
     hoja.title = titulo
+    filas = [{k: v for k, v in f.items() if not k.startswith("_")} for f in filas]
     if not filas:
         hoja.append(["(sin resultados)"])
         return
@@ -154,26 +298,31 @@ def _pestana(libro: Workbook, titulo: str, filas: list[dict], primera: bool = Fa
     for i, columna in enumerate(columnas, start=1):
         largo = max(len(str(columna)), *(min(len(str(f[columna] or "")), 60) for f in filas))
         hoja.column_dimensions[get_column_letter(i)].width = largo + 2
-        if columna in ("importe", "ultimo_importe", "importe_total"):
-            for celda in hoja.iter_rows(min_row=2, min_col=i, max_col=i):
-                celda[0].number_format = '#,##0.00 "€"'
-        if columna in ("fecha", "ultimo_contrato", "ultimo"):
-            for celda in hoja.iter_rows(min_row=2, min_col=i, max_col=i):
-                celda[0].number_format = "dd/mm/yyyy"
+        formato = FORMATO_EUROS if columna in COLUMNAS_EUROS else "dd/mm/yyyy" if columna in COLUMNAS_FECHA else None
+        if formato:
+            for (celda,) in hoja.iter_rows(min_row=2, min_col=i, max_col=i):
+                celda.number_format = formato
     hoja.freeze_panes = "A2"
     hoja.auto_filter.ref = hoja.dimensions
 
 
-def guardar(hallazgos: list[Hallazgo], antelacion: int, ruta: Path | None = None) -> dict:
+def guardar(hallazgos: list[Hallazgo], antelacion: int, ruta: Path | None = None,
+            hoy: date | None = None) -> dict:
     ruta = ruta or RUTA
-    municipios = resumen_municipios(hallazgos, antelacion)
+    analisis = analizar(hallazgos, antelacion, hoy)
+    general = analisis["general"]
     libro = Workbook()
-    _pestana(libro, "municipios", municipios, primera=True)
-    _pestana(libro, "contratos", filas_contratos(hallazgos))
-    _pestana(libro, "competencia", resumen_competencia(hallazgos))
+    _pestana(libro, "ayuntamientos", analisis["municipios"], primera=True)
+    _pestana(libro, "calendario_envios", analisis["calendario"])
+    _pestana(libro, "por_mes", analisis["meses"])
+    _pestana(libro, "por_provincia", analisis["provincias"])
+    _pestana(libro, "competencia", analisis["competencia"])
+    _pestana(libro, "contratos", analisis["contratos"])
+    _pestana(libro, "resumen", [{"dato": k, "valor": v} for k, v in general.items()])
     guardar_libro(libro, ruta)
     return {
-        "contratos": len(hallazgos),
-        "municipios": len(municipios),
-        "prioridad_1": sum(f["prioridad_sugerida"] == 1 for f in municipios),
+        "contratos": general["contratos"],
+        "municipios": general["ayuntamientos"],
+        "prioridad_1": sum(f["prioridad"] == 1 for f in analisis["municipios"]),
+        "analisis": analisis,
     }

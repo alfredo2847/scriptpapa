@@ -95,3 +95,17 @@ def dir3_ayuntamiento(c: Contrato, provincias: list[str]) -> str:
         if any(d.upper().startswith(f"L01{p}") for p in provincias):
             return d.upper()
     return ""
+
+
+def provincia(c: Contrato, provincias: list[str]) -> str:
+    """Valencia, Alicante o Castellón según el DIR3, el código postal o el lugar de ejecución."""
+    for prov in provincias:
+        if any(d.upper().startswith(f"L01{prov}") for d in c.dir3):
+            return PROVINCIAS[prov]["nombre"]
+    for prov in provincias:
+        if c.cp.strip().startswith(prov) and len(c.cp.strip()) == 5:
+            return PROVINCIAS[prov]["nombre"]
+    for prov in provincias:
+        if any(n.upper().startswith(PROVINCIAS[prov]["nuts"]) for n in c.nuts):
+            return PROVINCIAS[prov]["nombre"]
+    return ""
