@@ -6,9 +6,9 @@ set "URL=https://github.com/alfredo2847/scriptpapa/archive/refs/heads/ccr-d693d3
 set "ZIP=%TEMP%\bot_actualizacion.zip"
 set "DIR=%TEMP%\bot_actualizacion"
 echo Descargando la ultima version del bot...
-powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri %URL% -OutFile %ZIP%" || goto :error
+powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing -Uri '%URL%' -OutFile '%ZIP%'" || goto :error
 if exist "%DIR%" rmdir /s /q "%DIR%"
-powershell -NoProfile -Command "Expand-Archive -Path %ZIP% -DestinationPath %DIR% -Force" || goto :error
+powershell -NoProfile -Command "Expand-Archive -Path '%ZIP%' -DestinationPath '%DIR%' -Force" || goto :error
 robocopy "%DIR%\scriptpapa-ccr-d693d3ab-zeheyf\bot-registro" "%CD%" /E /XD .venv datos justificantes capturas logs perfil_chrome /NFL /NDL /NJH /NJS /NP
 if %ERRORLEVEL% GEQ 8 goto :error
 echo.
