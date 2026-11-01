@@ -23,6 +23,7 @@ from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from comun import DATOS, MESES, guardar_libro, normalizar
+from clasificar import SERVICIO, categoria, es_ayuntamiento, nombre_municipio
 from filtros import dir3_ayuntamiento, en_zona, municipio, provincia, puntuar
 from placsp import ESTADOS, Contrato
 
@@ -45,6 +46,13 @@ class Hallazgo:
     municipio: str
     dir3: str
     provincia: str = ""
+    categoria: str = SERVICIO
+    es_ayto: bool = True
+
+    @property
+    def principal(self) -> bool:
+        """Servicio de paella contratado por un ayuntamiento: lo que cuenta en los informes."""
+        return self.categoria == SERVICIO and self.es_ayto
 
     @property
     def fecha(self) -> date | None:
@@ -86,9 +94,10 @@ def filtrar(contratos: Iterable[Contrato], config: dict) -> list[Hallazgo]:
         previo = hallazgos.get(c.id)
         if previo and (c.actualizado or datetime.min) <= (previo.contrato.actualizado or datetime.min):
             continue
-        hallazgos[c.id] = Hallazgo(c, resultado[0], resultado[1], municipio(c),
+        hallazgos[c.id] = Hallazgo(c, resultado[0], resultado[1], nombre_municipio(municipio(c)),
                                    dir3_ayuntamiento(c, config["provincias"]),
-                                   provincia(c, config["provincias"]))
+                                   provincia(c, config["provincias"]),
+                                   categoria(c.objeto or c.titulo), es_ayuntamiento(c.organo))
     return list(hallazgos.values())
 
 
@@ -321,7 +330,7 @@ def _pestana(libro: Workbook, titulo: str, filas: list[dict], primera: bool = Fa
 
 
 def guardar(hallazgos: list[Hallazgo], antelacion: int, ruta: Path | None = None,
-            hoy: date | None = None, orden: str = "prioridad") -> dict:
+            hoy: date | None = None, orden: str = "prioridad", otros: list[Hallazgo] | None = None) -> dict:
     ruta = ruta or RUTA
     analisis = analizar(hallazgos, antelacion, hoy, orden)
     general = analisis["general"]
@@ -337,6 +346,11 @@ def guardar(hallazgos: list[Hallazgo], antelacion: int, ruta: Path | None = None
     _pestana(libro, "competencia", analisis["competencia"])
     _pestana(libro, "contratos", analisis["contratos"])
     _pestana(libro, "resumen", [{"dato": k, "valor": v} for k, v in general.items()])
+    if otros is not None:
+        filas = filas_contratos(otros)
+        for fila, h in zip(filas, sorted(otros, key=lambda h: h.fecha or date.min, reverse=True)):
+            fila["tipo"] = h.categoria if h.es_ayto else f"{h.categoria} (no es ayuntamiento)"
+        _pestana(libro, "otros_contratos", [{"tipo": f.pop("tipo"), **f} for f in filas])
     guardar_libro(libro, ruta)
     return {
         "contratos": general["contratos"],

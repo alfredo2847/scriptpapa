@@ -103,10 +103,19 @@ def cmd_compradores(args, config, log) -> int:
                 ruta.unlink(missing_ok=True)
 
     hallazgos = compradores.filtrar(todos(), config)
+    # Los informes cuentan solo el servicio de paella contratado por ayuntamientos; lo demás
+    # (leña, orquestas, ingredientes, otros organismos...) va a la pestaña otros_contratos.
+    principales = [h for h in hallazgos if h.principal]
+    otros = [h for h in hallazgos if not h.principal]
     grupos = {
-        "menores": [h for h in hallazgos if h.via == "Contrato menor"],
-        "licitaciones": [h for h in hallazgos if h.via == "Licitación"],
-        "conjunto": hallazgos,
+        "menores": [h for h in principales if h.via == "Contrato menor"],
+        "licitaciones": [h for h in principales if h.via == "Licitación"],
+        "conjunto": principales,
+    }
+    otros_grupo = {
+        "menores": [h for h in otros if h.via == "Contrato menor"],
+        "licitaciones": [h for h in otros if h.via == "Licitación"],
+        "conjunto": otros,
     }
     avisos = []
     if fallidas:
@@ -119,7 +128,8 @@ def cmd_compradores(args, config, log) -> int:
         carpeta, nombre_informe, nombre_hoja, titulo, orden = SALIDAS[clave]
         carpeta = RAIZ_PROYECTO / carpeta
         carpeta.mkdir(parents=True, exist_ok=True)
-        res = compradores.guardar(grupos[clave], antelacion, carpeta / nombre_hoja, orden=orden)
+        res = compradores.guardar(grupos[clave], antelacion, carpeta / nombre_hoja, orden=orden,
+                                  otros=otros_grupo[clave])
         informe = informe_compradores.generar(res["analisis"], ahora, carpeta / nombre_informe, avisos, titulo)
         informes.append(informe)
         log.info(f"\n{titulo}: {res['contratos']} contratos en {res['municipios']} ayuntamientos "

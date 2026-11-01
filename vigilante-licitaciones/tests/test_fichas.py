@@ -74,3 +74,21 @@ def test_frases_clave():
     assert "15 de agosto" in frases["Fechas"][0]
     assert frases["Requisitos sanitarios y seguro"]
     assert frases["Garantía"]
+
+
+def test_clasificar():
+    from clasificar import EQUIPAMIENTO, EVENTO, INGREDIENTES, SERVICIO, categoria, es_ayuntamiento, nombre_municipio
+    assert categoria("Paella gigante para 450 personas V Fira d'associacions") == SERVICIO
+    assert categoria("Elaboración 300 raciones paella valenciana para Festividad 9 de octubre") == SERVICIO
+    assert categoria("Servicio de paella y alquiler sillas/mesas.") == SERVICIO
+    assert categoria("Alquiler de 1600 sillas y 200 mesas para la Paella Gigante") == EVENTO
+    assert categoria("Contrato menor suministro de leña para la noche de las paellas") == EVENTO
+    assert categoria("Orquesta Paellas BELLA DONNA fiestas patronales") == EVENTO
+    assert categoria("Lloguer de carpes festa de les paelles") == EVENTO
+    assert categoria("Contrato suministro ingredientes para paellas de festejos patronales") == INGREDIENTES
+    assert categoria("Reparar paellero nº 2,3,4 en Hogar Provincial") == EQUIPAMIENTO
+    assert categoria("Reposición de sartén basculante para la RPM") == EQUIPAMIENTO
+    assert es_ayuntamiento("Alcaldía del Ayuntamiento de Ibi")
+    assert es_ayuntamiento("Consejo Rector del Patronato Municipal de Turismo de Castellón")
+    assert not es_ayuntamiento("Rectorado de la Universidad Jaume I")
+    assert nombre_municipio("Castellón de la Plana") == nombre_municipio("Castelló") == "Castelló de la Plana"
