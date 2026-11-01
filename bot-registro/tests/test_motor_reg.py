@@ -24,13 +24,21 @@ PAGINA = """
 </div>
 <div id="elegido"></div>
 <dl><dt>Órgano destino:</dt><dd>L01461311 - Ayuntamiento de Gandia</dd><dt>Asunto:</dt><dd>Paellas para Gandia</dd></dl>
+<div id="componente"></div>
 <script>
+document.getElementById('componente').attachShadow({mode: 'open'}).innerHTML =
+  '<dl><dt>Número de registro:</dt><dd>REGAGE26e00000000001</dd></dl>';
 function buscar() {
   const c = document.getElementById('buscar-campo').value;
   const r = document.getElementById('resultados');
   r.innerHTML = '';
   if (c === 'L01461311') {
-    r.innerHTML = '<div>L01461311 - Ayuntamiento de Gandia <button onclick="elegir()">Seleccionar</button></div>';
+    // como en el REG: el resultado se pinta dentro de un componente con shadow DOM
+    const caja = document.createElement('div');
+    caja.attachShadow({mode: 'open'}).innerHTML =
+      '<div>L01461311 - Ayuntamiento de Gandia <button>Seleccionar</button></div>';
+    caja.shadowRoot.querySelector('button').onclick = elegir;
+    r.appendChild(caja);
   }
 }
 function elegir() { document.getElementById('elegido').textContent = 'L01461311 - Ayuntamiento de Gandia'; }
@@ -80,6 +88,8 @@ def test_leer_por_etiquetas(motor):
     assert leido == {"codigo": "L01461311 - Ayuntamiento de Gandia", "asunto": "Paellas para Gandia"}
     with pytest.raises(ErrorAyuntamiento):
         motor.leer_por_etiquetas({"x": "No existe:"})
+    # valores dentro de un shadow DOM
+    assert motor.leer_por_etiquetas({"n": "Número de registro:"}) == {"n": "REGAGE26e00000000001"}
 
 
 def test_buscar_por_codigo(motor):
