@@ -22,7 +22,7 @@ import requests  # noqa: E402
 import compradores  # noqa: E402
 import fichas  # noqa: E402
 import licitaciones  # noqa: E402
-from comun import DATOS, DESCARGAS, PROVINCIAS, avisar, cargar_config, configurar_log  # noqa: E402
+from comun import DATOS, DESCARGAS, PROVINCIAS, VERSION, avisar, cargar_config, configurar_log  # noqa: E402
 from xml.etree.ElementTree import ParseError  # noqa: E402
 
 from placsp import FeedNoValido, Red, leer_archivo, leer_feed_reciente, urls_historico  # noqa: E402
@@ -204,6 +204,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     config = cargar_config()
     log = configurar_log(args.comando)
+    provincias = ", ".join(PROVINCIAS[p]["nombre"] for p in config["provincias"])
+    filtro = "solo paellas" if config.get("solo_paellas", True) else "paellas, catering y comidas de fiestas"
+    log.info(f"Vigilante versión {VERSION}. Provincias: {provincias}. Filtro: {filtro}.")
     if args.comando == "compradores":
         return cmd_compradores(args, config, log)
     return cmd_buscar(args, config, log)

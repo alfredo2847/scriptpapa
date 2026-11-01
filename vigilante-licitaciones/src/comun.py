@@ -18,6 +18,8 @@ from pathlib import Path
 
 import yaml
 
+VERSION = "2026-11-01 (solo paellas, Comunitat Valenciana)"
+
 RAIZ = Path(__file__).resolve().parent.parent
 DATOS = RAIZ / "datos"
 DESCARGAS = DATOS / "descargas"
