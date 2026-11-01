@@ -429,16 +429,14 @@ class Motor:
         limite = time.monotonic() + self.timeout_accion / 1000
         while True:
             opciones = self.pagina.locator('[role="option"]:visible, dnt-option:visible')
-            textos = []
-            for i in range(opciones.count()):
-                opcion = opciones.nth(i)
-                try:
-                    texto = opcion.inner_text(timeout=1000)
-                except Exception:
-                    continue
-                textos.append(texto.strip())
+            try:
+                # una sola consulta al navegador para toda la lista (Población tiene cientos de opciones)
+                textos = [t.strip() for t in opciones.evaluate_all("els => els.map(e => e.innerText || e.textContent || '')")]
+            except Exception:
+                textos = []
+            for i, texto in enumerate(textos):
                 if normalizar(texto) == objetivo:
-                    opcion.click(timeout=self.timeout_accion)
+                    opciones.nth(i).click(timeout=self.timeout_accion)
                     self._pausa(0.5)
                     return
             if time.monotonic() >= limite:
