@@ -14,7 +14,9 @@ from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from comun import DATOS, guardar_libro
-from filtros import DUDOSO, ORDEN_ENCAJE, en_zona, municipio, puntuar
+import shutil
+
+from filtros import DUDOSO, ORDEN_ENCAJE, de_paella, en_zona, municipio, puntuar
 from placsp import ESTADOS, PROCEDIMIENTOS, TIPOS, Contrato
 
 RUTA = DATOS / "licitaciones.xlsx"
@@ -148,6 +150,33 @@ def guardar(existentes: dict[str, dict], ahora: datetime, ruta: Path | None = No
     hoja.freeze_panes = "C2"
     hoja.auto_filter.ref = hoja.dimensions
     guardar_libro(libro, ruta)
+
+
+def retirar_sin_paellas(existentes: dict[str, dict], config: dict, carpeta_fichas: Path, log=None) -> list[dict]:
+    """Quita de la hoja lo que no habla de paellas (de búsquedas anteriores).
+
+    No toca las que marcaste ME INTERESA o PRESENTADA. Sus carpetas no se borran:
+    se mueven a fichas/_no_paella.
+    """
+    if not config.get("solo_paellas", True):
+        return []
+    retiradas = []
+    for ident, f in list(existentes.items()):
+        if f.get("seguimiento") in (ME_INTERESA, PRESENTADA):
+            continue
+        if de_paella(f"{f.get('objeto') or ''} {f.get('motivo') or ''}", config):
+            continue
+        retiradas.append(existentes.pop(ident))
+        carpeta = Path(str(f.get("carpeta") or ""))
+        if f.get("carpeta") and carpeta.is_dir():
+            destino = carpeta_fichas / "_no_paella"
+            destino.mkdir(parents=True, exist_ok=True)
+            try:
+                shutil.move(str(carpeta), str(destino / carpeta.name))
+            except OSError as e:
+                if log:
+                    log.warning(f"  No se pudo mover {carpeta.name}: {e}")
+    return retiradas
 
 
 def recordatorios(existentes: dict[str, dict], ahora: datetime, dias: int) -> list[dict]:

@@ -42,7 +42,20 @@ def test_adjudicacion():
     assert c.fecha_adjudicacion == date(2025, 7, 2)
 
 
-def test_encaje(config):
+def test_solo_paellas(config):
+    assert config["solo_paellas"] is True
+    assert puntuar(uno(objeto="Servicio de paellas gigantes"), config)[0] == ALTO
+    assert puntuar(uno(objeto="Concurs de paelles festes patronals"), config)[0] == ALTO
+    assert puntuar(uno(objeto="Paellada popular Fira de Tots Sants"), config)[0] == ALTO
+    assert puntuar(uno(objeto="Arroz gigante para el día del pueblo"), config)[0] == ALTO
+    assert puntuar(uno(objeto="Fiestas mayores", lote="Lote 3: paella de marisco"), config)[0] == ALTO
+    assert puntuar(uno(objeto="Catering para las fiestas patronales", cpv="55520000"), config) is None
+    assert puntuar(uno(objeto="Dinar de germanor festes patronals"), config) is None
+    assert puntuar(uno(objeto="Comida popular fiestas"), config) is None
+
+
+def test_encaje_amplio(config):
+    config["solo_paellas"] = False
     assert puntuar(uno(objeto="Servicio de paellas gigantes"), config)[0] == ALTO
     assert puntuar(uno(objeto="Dinar de germanor festes patronals"), config)[0] == ALTO
     assert puntuar(uno(objeto="Catering para las fiestas patronales", cpv="79952000"), config)[0] == MEDIO
@@ -100,6 +113,7 @@ def test_feed_reciente_sigue_paginas_y_para():
 
 
 def test_compradores(tmp_path, config):
+    config["solo_paellas"] = False
     datos = feed(
         entrada("1", "Paellas fiestas 2024", estado="RES", adjudicatario="Paellas Pepe SL",
                 adjudicado="8000", fecha_adj="2024-07-10"),
@@ -129,6 +143,7 @@ def test_compradores(tmp_path, config):
 
 
 def test_licitaciones_conserva_lo_escrito_a_mano(tmp_path, config):
+    config["solo_paellas"] = False
     ruta = tmp_path / "licitaciones.xlsx"
     contratos = list(leer_atom(feed(
         entrada("1", "Paellas gigantes Fiestas Mayores"),
@@ -224,3 +239,19 @@ def test_una_fuente_rota_no_para_la_busqueda(tmp_path, monkeypatch):
     estado = json.loads((tmp_path / "estado.json").read_text())["ultima_busqueda"]
     assert "licitaciones" in estado and "agregadas" not in estado
     assert any("agregadas" in a for a in avisos)
+
+
+def test_retira_lo_que_no_es_de_paellas(tmp_path, config):
+    fichas_dir = tmp_path / "fichas"
+    (fichas_dir / "catering").mkdir(parents=True)
+    existentes = {
+        "a": {"objeto": "Servicio de paellas gigantes", "motivo": "menciona paella", "seguimiento": "NUEVA"},
+        "b": {"objeto": "Catering fiestas", "motivo": "fiesta y comida", "seguimiento": "NUEVA",
+              "carpeta": str(fichas_dir / "catering")},
+        "c": {"objeto": "Catering fiestas", "motivo": "x", "seguimiento": "ME INTERESA"},
+        "d": {"objeto": "Fiestas mayores", "motivo": "menciona paella", "seguimiento": "NUEVA"},
+    }
+    retiradas = licitaciones.retirar_sin_paellas(existentes, config, fichas_dir)
+    assert len(retiradas) == 1 and set(existentes) == {"a", "c", "d"}
+    assert (fichas_dir / "_no_paella" / "catering").is_dir()
+    assert not (fichas_dir / "catering").exists()

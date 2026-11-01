@@ -34,7 +34,14 @@ DEFAULTS: dict = {
         "agregadas": f"{BASE_PLACSP}/sindicacion_1044/PlataformasAgregadasSinMenores.atom",
         "menores": f"{BASE_PLACSP}/sindicacion_1143/contratosMenoresPerfilesContratantes.atom",
     },
+    # true: solo licitaciones que hablan de paellas (nada de catering ni comidas genéricas)
+    "solo_paellas": True,
     "palabras": {
+        # Con solo_paellas, únicamente cuentan estas (valen también plurales: paellas, paelleros...)
+        "paella": [
+            "paella", "paelles", "paellada", "paellades", "paellera", "paeller",
+            "arroz gigante", "arroces gigantes", "arros gegant", "arrossos gegants",
+        ],
         # Basta una para que el contrato sea de encaje "Alto"
         "seguras": [
             "paella", "paelles", "paellada", "arroz gigante", "arros gegant",

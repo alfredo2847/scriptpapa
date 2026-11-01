@@ -6,6 +6,9 @@
 # Nada de fuera de estas provincias aparece en las hojas ni en fichas/.
 provincias: ["46", "03", "12"]
 
+# true: solo licitaciones que hablan de paellas. Nada de catering ni comidas genéricas.
+solo_paellas: true
+
 buscar:
   dias_primera_vez: 30      # la primera búsqueda mira 30 días atrás
   aviso_dias_plazo: 3       # avisa de las ME INTERESA que vencen en 3 días o menos

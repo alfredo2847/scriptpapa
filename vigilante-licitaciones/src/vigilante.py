@@ -147,6 +147,10 @@ def cmd_buscar(args, config, log) -> int:
 
     encontradas = licitaciones.abiertas(contratos, config, ahora)
     existentes = licitaciones.cargar()
+    retiradas = licitaciones.retirar_sin_paellas(existentes, config, fichas.CARPETA, log)
+    if retiradas:
+        log.info(f"Retiradas {len(retiradas)} de la hoja que no son de paellas "
+                 f"(sus carpetas están en {fichas.CARPETA / '_no_paella'})")
     if not args.sin_fichas:
         crear_fichas(encontradas, existentes, config, ahora, None if args.archivo else red, log)
     nuevas = licitaciones.actualizar(existentes, encontradas, ahora)

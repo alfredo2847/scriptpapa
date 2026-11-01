@@ -78,7 +78,16 @@ ya descargados no se vuelven a descargar.
 Los márgenes de importe y qué encajes tienen carpeta se cambian en
 `config.yaml` (`fichas:`).
 
-### Encaje
+### Solo paellas
+
+Por defecto (`solo_paellas: true` en `config.yaml`) solo se quedan los contratos
+que hablan de paellas en el título, el objeto o algún lote: paella, paelles,
+paellada, concurso de paellas, paellera, arroz gigante… **Nada de catering,
+comidas populares ni comidas genéricas.** Lo que ya estaba en la hoja de antes
+y no es de paellas se retira en la siguiente búsqueda (salvo lo marcado
+ME INTERESA o PRESENTADA), y su carpeta se mueve a `fichas\_no_paella`.
+
+### Encaje (solo con `solo_paellas: false`)
 
 - **Alto:** menciona paella, paellada, comida popular, dinar/sopar de germanor…
 - **Medio:** una palabra de fiesta (fiestas, festes, fira, fallas, moros y

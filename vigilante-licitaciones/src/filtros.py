@@ -48,10 +48,18 @@ def en_zona(c: Contrato, provincias: list[str]) -> bool:
     return False
 
 
+def de_paella(texto: str, config: dict) -> list[str]:
+    """Palabras de paella que aparecen en el texto (vacío si no habla de paellas)."""
+    return _coincidencias(normalizar(texto), config["palabras"]["paella"])
+
+
 def puntuar(c: Contrato, config: dict) -> tuple[str, str] | None:
     """Devuelve (encaje, motivo) o None si el contrato no tiene que ver con paellas."""
     palabras = config["palabras"]
     texto = normalizar(c.texto)
+    if config.get("solo_paellas", True):
+        paellas = de_paella(texto, config)
+        return (ALTO, "menciona " + ", ".join(paellas)) if paellas else None
     seguras = _coincidencias(texto, palabras["seguras"])
     if seguras:
         return ALTO, "menciona " + ", ".join(seguras)
