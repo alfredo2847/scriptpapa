@@ -177,3 +177,42 @@ def test_comando_buscar_con_archivo(tmp_path, monkeypatch):
     assert len(carpetas) == 1 and (carpetas[0] / "00_RESUMEN.txt").exists()
     fila = next(iter(licitaciones.cargar(tmp_path / "licitaciones.xlsx").values()))
     assert fila["valoracion"] > 0 and fila["carpeta"] == str(carpetas[0])
+
+
+def test_una_fuente_rota_no_para_la_busqueda(tmp_path, monkeypatch):
+    """La plataforma devuelve una página HTML en una fuente: se sigue con la otra."""
+    import json
+
+    import fichas
+    import placsp
+    import vigilante
+    monkeypatch.setattr(licitaciones, "RUTA", tmp_path / "licitaciones.xlsx")
+    monkeypatch.setattr(vigilante, "RUTA_ESTADO", tmp_path / "estado.json")
+    monkeypatch.setattr(vigilante, "DATOS", tmp_path)
+    monkeypatch.setattr(fichas, "CARPETA", tmp_path / "fichas")
+    avisos = []
+    monkeypatch.setattr(vigilante, "avisar", lambda t, m: avisos.append(m))
+
+    buena = feed(entrada("1", "Paellas fiestas", plazo="2099-01-01",
+                         actualizado=datetime.now().isoformat(timespec="seconds")))
+    html = b'<!DOCTYPE html><html><head><meta charset="utf-8"><title>Error</title></head><body><p>x</body></html>'
+
+    class Respuesta:
+        def __init__(self, contenido):
+            self.content = contenido
+            self.status_code = 200
+            self.headers = {}
+
+        def raise_for_status(self):
+            pass
+
+    def falso_get(self, url, **kw):
+        return Respuesta(html if "1044" in url else buena)
+
+    monkeypatch.setattr(placsp.Red, "_get", falso_get)
+    monkeypatch.setattr(placsp.Red, "descargar_documento", lambda self, url, c, n: (_ for _ in ()).throw(OSError()))
+    assert vigilante.main(["buscar"]) == 0
+    assert len(licitaciones.cargar(tmp_path / "licitaciones.xlsx")) == 1
+    estado = json.loads((tmp_path / "estado.json").read_text())["ultima_busqueda"]
+    assert "licitaciones" in estado and "agregadas" not in estado
+    assert any("agregadas" in a for a in avisos)

@@ -126,8 +126,13 @@ Feeds de sindicación ATOM (formato CODICE) de la PLACSP, en
 `contrataciondelsectorpublico.gob.es/sindicacion/`:
 
 - `sindicacion_643`: licitaciones de los perfiles de contratante alojados en la PLACSP;
-- `sindicacion_1143`: plataformas agregadas (Generalitat Valenciana y otras);
-- `sindicacion_1044`: contratos menores.
+- `sindicacion_1044`: plataformas agregadas (Generalitat Valenciana y otras);
+- `sindicacion_1143`: contratos menores.
+
+Si una fuente falla (por ejemplo, porque la plataforma cambia una dirección),
+el vigilante lo dice, sigue con las demás y guarda lo encontrado. La fuente
+que falló se vuelve a mirar desde su última lectura correcta en la siguiente
+búsqueda.
 
 Los meses y años cerrados se publican en ZIP (`..._2025.zip`, `..._202601.zip`).
 Un ayuntamiento que publique solo en su propia web y no en la PLACSP no aparecerá.

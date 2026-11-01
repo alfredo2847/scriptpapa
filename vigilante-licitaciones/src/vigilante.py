@@ -23,7 +23,9 @@ import compradores  # noqa: E402
 import fichas  # noqa: E402
 import licitaciones  # noqa: E402
 from comun import DATOS, DESCARGAS, PROVINCIAS, avisar, cargar_config, configurar_log  # noqa: E402
-from placsp import Red, leer_archivo, leer_feed_reciente, urls_historico  # noqa: E402
+from xml.etree.ElementTree import ParseError  # noqa: E402
+
+from placsp import FeedNoValido, Red, leer_archivo, leer_feed_reciente, urls_historico  # noqa: E402
 
 RUTA_ESTADO = DATOS / "estado.json"
 
@@ -107,33 +109,41 @@ def cmd_buscar(args, config, log) -> int:
     ahora = datetime.now()
     opciones = config["buscar"]
     estado = _leer_estado()
-    if args.dias:
-        desde = ahora - timedelta(days=args.dias)
-    elif estado.get("ultima_busqueda"):
-        desde = datetime.fromisoformat(estado["ultima_busqueda"]) - timedelta(days=opciones["solape_dias"])
-    else:
-        desde = ahora - timedelta(days=opciones["dias_primera_vez"])
+    ultimas = estado.get("ultima_busqueda") or {}
+    if isinstance(ultimas, str):  # formato antiguo: una fecha para todas las fuentes
+        ultimas = {"licitaciones": ultimas, "agregadas": ultimas}
+
+    def desde_para(fuente: str) -> datetime:
+        if args.dias:
+            return ahora - timedelta(days=args.dias)
+        if ultimas.get(fuente):
+            return datetime.fromisoformat(ultimas[fuente]) - timedelta(days=opciones["solape_dias"])
+        return ahora - timedelta(days=opciones["dias_primera_vez"])
 
     contratos = []
     red = None
+    fallidas = []
     if args.archivo:
         for a in args.archivo:
             contratos.extend(leer_archivo(Path(a), _fuente_de_archivo(Path(a))))
     else:
         red = Red(config["red"]["timeout_seg"], config["red"]["reintentos"])
-        log.info(f"Buscando licitaciones publicadas o cambiadas desde el {desde:%d/%m/%Y %H:%M}")
         for fuente in ("licitaciones", "agregadas"):
+            desde = desde_para(fuente)
+            log.info(f"Fuente '{fuente}': publicadas o cambiadas desde el {desde:%d/%m/%Y %H:%M}")
             try:
                 encontrados, paginas = leer_feed_reciente(
                     config["fuentes"][fuente], desde, fuente, red.obtener, opciones["max_paginas"])
-            except requests.RequestException as e:
-                log.error(f"No se pudo leer la fuente '{fuente}': {e}")
-                avisar("Vigilante de licitaciones", f"No se pudo consultar la plataforma ({fuente}). Mira el log.")
-                return 1
+            except (requests.RequestException, FeedNoValido, ParseError) as e:
+                log.error(f"  No se pudo leer la fuente '{fuente}': {e}")
+                log.error("  Se sigue con las demás; esta se volverá a mirar en la próxima búsqueda.")
+                fallidas.append(fuente)
+                continue
             log.info(f"  {fuente}: {len(encontrados)} expedientes en {paginas} páginas")
             if paginas >= opciones["max_paginas"]:
                 log.warning(f"  Se alcanzó el máximo de {paginas} páginas; puede faltar lo más antiguo.")
             contratos.extend(encontrados)
+            ultimas[fuente] = ahora.isoformat(timespec="seconds")
 
     encontradas = licitaciones.abiertas(contratos, config, ahora)
     existentes = licitaciones.cargar()
@@ -143,8 +153,7 @@ def cmd_buscar(args, config, log) -> int:
     licitaciones.guardar(existentes, ahora)
     if not args.archivo:
         DATOS.mkdir(parents=True, exist_ok=True)
-        RUTA_ESTADO.write_text(json.dumps({"ultima_busqueda": ahora.isoformat(timespec="seconds")}),
-                               encoding="utf-8")
+        RUTA_ESTADO.write_text(json.dumps({"ultima_busqueda": ultimas}), encoding="utf-8")
 
     log.info(f"\n{len(encontradas)} licitaciones abiertas que encajan; {len(nuevas)} nuevas. "
              f"Hoja: {licitaciones.RUTA}")
@@ -162,6 +171,8 @@ def cmd_buscar(args, config, log) -> int:
         log.info(f"  VENCE PRONTO: {f['municipio'] or f['organo']}: {f['objeto']} (plazo {f['plazo']:%d/%m %H:%M})")
 
     mensajes = []
+    if fallidas:
+        mensajes.append(f"no se pudo leer: {', '.join(fallidas)} (mira el log)")
     if nuevas:
         lista = "; ".join(f"{f['municipio'] or f['organo']} ({f['encaje']})" for f in nuevas[:5])
         mensajes.append(f"{len(nuevas)} nueva(s): {lista}")
@@ -169,7 +180,7 @@ def cmd_buscar(args, config, log) -> int:
         mensajes.append(f"{len(pronto)} marcada(s) ME INTERESA vence(n) pronto")
     if mensajes:
         avisar("Licitaciones de paellas", ". ".join(mensajes))
-    return 0
+    return 1 if fallidas and not contratos else 0
 
 
 def main(argv: list[str] | None = None) -> int:

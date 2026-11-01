@@ -330,6 +330,15 @@ def urls_historico(url_atom: str, anos: int, hoy: date | None = None) -> list[st
     return urls
 
 
+class FeedNoValido(Exception):
+    """La dirección responde, pero con una página web en vez de datos."""
+
+
+def _parece_feed(contenido: bytes) -> bool:
+    inicio = contenido[:2000].lstrip(b"\xef\xbb\xbf \r\n\t").lower()
+    return inicio.startswith(b"<?xml") and b"<feed" in inicio or inicio.startswith(b"<feed")
+
+
 class Red:
     def __init__(self, timeout: float = 120, reintentos: int = 3):
         self.timeout = timeout
@@ -358,7 +367,11 @@ class Red:
         raise ultimo  # type: ignore[misc]
 
     def obtener(self, url: str) -> bytes:
-        return self._get(url).content
+        contenido = self._get(url).content
+        if not _parece_feed(contenido):
+            raise FeedNoValido(f"{url} no devuelve un feed ATOM (¿ha cambiado la dirección?). "
+                               f"Empieza por: {contenido[:120]!r}")
+        return contenido
 
     def descargar_documento(self, url: str, carpeta: Path, nombre: str) -> Path:
         """Descarga un pliego a la carpeta. Si ya existe uno con ese nombre, no lo repite."""

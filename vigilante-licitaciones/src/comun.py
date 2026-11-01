@@ -31,8 +31,8 @@ DEFAULTS: dict = {
     "provincias": ["46"],
     "fuentes": {
         "licitaciones": f"{BASE_PLACSP}/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom",
-        "agregadas": f"{BASE_PLACSP}/sindicacion_1143/PlataformasAgregadasSinMenores.atom",
-        "menores": f"{BASE_PLACSP}/sindicacion_1044/contratosMenoresPerfilesContratantes.atom",
+        "agregadas": f"{BASE_PLACSP}/sindicacion_1044/PlataformasAgregadasSinMenores.atom",
+        "menores": f"{BASE_PLACSP}/sindicacion_1143/contratosMenoresPerfilesContratantes.atom",
     },
     "palabras": {
         # Basta una para que el contrato sea de encaje "Alto"
