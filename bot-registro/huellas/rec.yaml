@@ -133,7 +133,7 @@ destinatario:
   boton_buscar: 'role=button[name="Buscar"]'
   boton_seleccionar: 'role=button[name="Seleccionar"]'
   espera_resultados_seg: 1
-  confirmacion: 'dnt-select[id="destinationOrganism"]'
+  confirmacion: 'dnt-select[id="destinationOrganism"] [role="combobox"]'
   cerrar:
     - pulsar: {selector: 'dnt-input[formcontrolname="search"] input:not([type="hidden"])', tecla: "Escape"}
 

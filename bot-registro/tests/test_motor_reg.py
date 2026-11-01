@@ -23,6 +23,7 @@ PAGINA = """
   <div id="resultados"></div>
 </div>
 <div id="elegido"></div>
+<input id="organismo" readonly value="">
 <dl><dt>Órgano destino:</dt><dd>L01461311 - Ayuntamiento de Gandia</dd><dt>Asunto:</dt><dd>Paellas para Gandia</dd></dl>
 <div id="componente"></div>
 <script>
@@ -45,6 +46,8 @@ function buscar() {
 const elegidoSombra = document.getElementById('elegido').attachShadow({mode: 'open'});
 function elegir() {
   elegidoSombra.innerHTML = '<span>L01461311 - Ayuntamiento de Gandia</span>';
+  // como en el REG: el organismo elegido queda como valor de un campo de solo lectura
+  document.getElementById('organismo').value = 'L01461311 - Ayuntamiento de Gandia';
   document.getElementById('modal').style.display = 'none';
 }
 </script>
@@ -63,7 +66,7 @@ destinatario:
   boton_buscar: 'role=button[name="Buscar"]'
   boton_seleccionar: 'role=button[name="Seleccionar"]'
   espera_resultados_seg: 0.2
-  confirmacion: '#elegido'
+  confirmacion: '#organismo'
 """
 
 

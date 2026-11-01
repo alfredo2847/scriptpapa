@@ -444,6 +444,15 @@ class Motor:
                 raise ErrorAyuntamiento(f"No aparece la opción {valor!r} en {selector!r} (hay: {muestra or 'ninguna'})")
             self._pausa(0.5)
 
+    def valor_de(self, selector: str) -> str:
+        """Valor mostrado por un campo: su 'value' (propiedad o atributo) y su texto, incluido el shadow DOM."""
+        loc = self.pagina.locator(selector).first
+        try:
+            valor = loc.evaluate("e => [e.value, e.getAttribute && e.getAttribute('value')].filter(Boolean).join(' ')")
+        except Exception:
+            valor = ""
+        return f"{valor} {self.texto_completo(selector)}".strip()
+
     def leer_por_etiquetas(self, etiquetas: dict) -> dict:
         """Lee valores 'Etiqueta:' seguidos de su valor en la línea siguiente del texto de la página."""
         lineas = [l.strip() for l in self.texto_completo().splitlines() if l.strip()]
@@ -489,7 +498,7 @@ class Motor:
         botones.first.click()
         self._pausa(1)
         if cfg.get("confirmacion"):
-            elegido = self.texto_completo(cfg["confirmacion"]) or self.pagina.locator(cfg["confirmacion"]).first.inner_text()
+            elegido = self.valor_de(cfg["confirmacion"])
             if codigo not in elegido:
                 raise ErrorAyuntamiento(f"El organismo seleccionado no es {codigo}: {elegido[:120]!r}")
         return True
