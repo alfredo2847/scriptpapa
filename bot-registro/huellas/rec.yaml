@@ -56,7 +56,7 @@ apertura:
   - &login
     si_pantalla: login
     acciones:
-      - clic: 'text=Accede con tu Cl@ve'
+      - clic: 'text=Accede con tu Cl@ve >> visible=true >> nth=0'
   - &clave
     si_pantalla: clave
     acciones:

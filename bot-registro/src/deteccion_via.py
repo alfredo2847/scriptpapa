@@ -276,8 +276,8 @@ def _detectar_rec(config, log, hoja, filas) -> set[str] | None:
                 fila["via"] = VIA_REC
                 fila["fecha_deteccion"] = ahora_texto()
             log.info(f"{fila['municipio']:<35} {'REC' if encontrado else 'no está en el REC'}")
-    except PantallaDesconocida as e:
-        detector.motor.capturar("deteccion_rec_pantalla_desconocida")
+    except (PantallaDesconocida, ErrorAyuntamiento) as e:
+        detector.motor.capturar("deteccion_rec_parada")
         avisar("Detección REC detenida", str(e))
         log.error(f"Detección REC detenida: {e}")
         completa = False
