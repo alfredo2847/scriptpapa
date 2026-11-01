@@ -173,7 +173,7 @@ python src/vigilante.py lista                  :: rehacer LISTA_LICITACIONES.htm
 ```
 
 Las descargas se guardan en `datos/descargas/` y no se repiten. Se pueden
-borrar cuando ya tengas `compradores.xlsx`.
+borrar cuando ya tengas el informe de `historial_contratos_menores`.
 
 Si la PLACSP cambia las direcciones de descarga, se ponen en `config.yaml`
 (`fuentes:`), o se descargan los ZIP a mano y se usan con

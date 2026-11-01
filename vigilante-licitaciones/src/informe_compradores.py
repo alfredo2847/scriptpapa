@@ -1,4 +1,4 @@
-"""Informe para leer: ANALISIS_COMPRADORES.html.
+"""Informe para leer del historial (ANALISIS_CONTRATOS_MENORES.html).
 
 Ordenado para decidir a quién y cuándo enviar la propuesta:
 1. Resumen en cifras.

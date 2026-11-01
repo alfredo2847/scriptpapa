@@ -1,8 +1,9 @@
 """Histórico: qué ayuntamientos contratan paellas, cuándo, por cuánto y a quién.
 
 Genera dos cosas:
-- datos/compradores.xlsx, con una pestaña por apartado del análisis;
-- ANALISIS_COMPRADORES.html, el informe para leer (ver informe_compradores.py).
+- un Excel con una pestaña por apartado del análisis;
+- el informe HTML para leer (ver informe_compradores.py).
+Ambos van a historial_contratos_menores/ (ver vigilante.salida_historial).
 
 Solo cuentan los contratos que hablan de paellas (ver filtros.puntuar). Se
 rehace entero en cada ejecución.

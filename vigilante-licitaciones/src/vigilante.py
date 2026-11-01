@@ -1,6 +1,6 @@
 """Vigilante de contratos públicos de paellas para fiestas.
 
-    python src/vigilante.py compradores [--anos 3]   histórico -> datos/compradores.xlsx
+    python src/vigilante.py compradores [--anos 3]   historial de contratos menores -> historial_contratos_menores/
     python src/vigilante.py buscar                   licitaciones abiertas -> datos/licitaciones.xlsx
 
 Solo lee datos públicos de la Plataforma de Contratación del Sector Público.
