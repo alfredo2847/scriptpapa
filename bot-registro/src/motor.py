@@ -70,7 +70,9 @@ TEXTO_PROFUNDO_JS = """
       }
     }
   };
-  recorrer(raiz || document.body);
+  const inicio = raiz || document.body;
+  if (inicio.shadowRoot) recorrer(inicio.shadowRoot);
+  recorrer(inicio);
   return partes.join(' ').replace(/ *\\n */g, '\\n').replace(/\\n+/g, '\\n');
 }
 """
