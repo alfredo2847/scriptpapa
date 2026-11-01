@@ -269,6 +269,7 @@ def _detectar_rec(config, log, hoja, filas) -> set[str] | None:
     try:
         detector = DetectorREC(navegador, flujo, config, log)
         detector.preparar()
+        fallos_seguidos = 0
         for fila in filas:
             try:
                 encontrado, _ = detector.esta_en_rec(fila["dir3_ayto"])
@@ -280,7 +281,12 @@ def _detectar_rec(config, log, hoja, filas) -> set[str] | None:
                 except (ErrorAyuntamiento, PantallaDesconocida) as e:
                     log.warning(f"{fila['municipio']}: no se pudo comprobar en el REC ({e})")
                     completa = False
+                    fallos_seguidos += 1
+                    if fallos_seguidos >= 3:
+                        detector.motor.capturar("deteccion_rec_fallos_seguidos")
+                        raise ErrorAyuntamiento(f"3 ayuntamientos seguidos sin poder comprobar; último error: {e}")
                     continue
+            fallos_seguidos = 0
             comprobados.add(fila["dir3_ayto"])
             if encontrado:
                 en_rec.add(fila["dir3_ayto"])
