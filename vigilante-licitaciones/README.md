@@ -99,6 +99,27 @@ ME INTERESA o PRESENTADA), y su carpeta se mueve a `fichas\_no_paella`.
 
 Las listas de palabras están en `src/comun.py` y se pueden cambiar en `config.yaml`.
 
+## Funcionamiento automático
+
+`programar.bat` lo deja funcionando solo:
+
+- Crea una tarea de Windows que se ejecuta **cada día a las 08:40**. Si el PC
+  estaba apagado a esa hora, se ejecuta al encenderlo.
+- **En temporada (febrero a septiembre) busca cada día**, que es cuando los
+  ayuntamientos licitan las paellas de sus fiestas. **El resto del año busca una
+  vez por semana**, para no perder nada. Los meses se cambian en `config.yaml`
+  (`temporada:`).
+- Crea en el escritorio el acceso directo **"Licitaciones de paellas"**, que
+  abre `LISTA_LICITACIONES.html`: la lista de licitaciones de paellas abiertas,
+  de mayor a menor valoración, con plazo, importe, enlace a la Plataforma y a
+  su carpeta, más las presentadas y las vencidas de las últimas semanas. Se
+  rehace en cada ejecución.
+- Cuando aparece una nueva, o vence pronto una marcada ME INTERESA, sale un
+  aviso de Windows.
+
+Si cambias el seguimiento en `licitaciones.xlsx` y quieres verlo ya en la lista:
+`python src/vigilante.py lista`.
+
 ## Instalación (Windows)
 
 1. Descarga
@@ -106,8 +127,7 @@ Las listas de palabras están en `src/comun.py` y se pueden cambiar en `config.y
    descomprímelo y copia la carpeta `vigilante-licitaciones` donde quieras (por
    ejemplo, al lado de `bot-registro`).
 2. Doble clic en `instalar.bat`.
-3. Doble clic en `programar.bat` para que `buscar` se ejecute solo cada día a
-   las 08:40 (con la sesión de Windows iniciada).
+3. Doble clic en `programar.bat` (ver "Funcionamiento automático").
 
 Para actualizar más adelante: `actualizar.bat`. Solo toca esta carpeta y nunca
 sobrescribe `config.yaml`, `datos/` ni `logs/`.
@@ -121,6 +141,7 @@ python src/vigilante.py compradores --anos 1 --fuentes menores   :: prueba rápi
 python src/vigilante.py buscar                 :: licitaciones nuevas desde la última búsqueda
 python src/vigilante.py buscar --dias 60       :: mirar 60 días atrás (y crear las carpetas que falten)
 python src/vigilante.py buscar --sin-fichas    :: solo la hoja, sin carpetas ni pliegos
+python src/vigilante.py lista                  :: rehacer LISTA_LICITACIONES.html sin buscar
 ```
 
 Las descargas se guardan en `datos/descargas/` y no se repiten. Se pueden

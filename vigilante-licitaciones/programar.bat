@@ -1,10 +1,29 @@
 @echo off
-REM Programa la busqueda diaria de licitaciones a las 08:40 (solo con la sesion de Windows iniciada).
-REM Para quitarla: schtasks /Delete /TN "Vigilante licitaciones" /F
+REM Deja el vigilante funcionando solo:
+REM  - tarea de Windows cada dia a las 08:40 (si el PC estaba apagado, se hace al encenderlo);
+REM    en temporada (feb-sep) busca cada dia y el resto del ano una vez por semana;
+REM  - acceso directo "Licitaciones de paellas" en el escritorio con la lista.
+REM Para quitar la tarea: schtasks /Delete /TN "Vigilante licitaciones" /F
+setlocal
 cd /d "%~dp0"
-schtasks /Create /F /SC DAILY /ST 08:40 /TN "Vigilante licitaciones" /TR "\"%~dp0buscar.bat\"" || goto :error
+set "BAT=%~dp0buscar.bat"
+set "LISTA=%~dp0LISTA_LICITACIONES.html"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$a = New-ScheduledTaskAction -Execute '%BAT%';" ^
+  "$t = New-ScheduledTaskTrigger -Daily -At '08:40';" ^
+  "$s = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2);" ^
+  "Register-ScheduledTask -TaskName 'Vigilante licitaciones' -Action $a -Trigger $t -Settings $s -Force | Out-Null" || goto :error
+".venv\Scripts\python.exe" src\vigilante.py lista >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$w = New-Object -ComObject WScript.Shell;" ^
+  "$l = $w.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Licitaciones de paellas.lnk');" ^
+  "$l.TargetPath = '%LISTA%'; $l.Save()" || goto :error
 echo.
-echo Programado: cada dia a las 08:40. El resultado queda en datos\licitaciones.xlsx y logs\tarea.log
+echo Listo:
+echo  - Se ejecuta solo cada dia a las 08:40 (si el PC esta apagado, al encenderlo).
+echo    Febrero a septiembre: busca cada dia. Resto del ano: una vez por semana.
+echo  - En el escritorio tienes "Licitaciones de paellas" con la lista.
+echo  - Cuando salga una nueva, aparece un aviso de Windows.
 pause
 goto :eof
 :error

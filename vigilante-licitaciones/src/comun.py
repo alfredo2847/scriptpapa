@@ -76,6 +76,12 @@ DEFAULTS: dict = {
     # Prefijos de CPV de servicios de comidas y de organización de eventos
     "cpv_comida": ["553", "555"],
     "cpv_eventos": ["7995"],
+    # Búsqueda automática (buscar --programada, la que lanza la tarea de Windows):
+    # cada día en los meses de temporada y una vez por semana el resto del año.
+    "temporada": {
+        "meses": [2, 3, 4, 5, 6, 7, 8, 9],   # febrero a septiembre
+        "dias_fuera_de_temporada": 7,
+    },
     "buscar": {
         "dias_primera_vez": 30,     # cuántos días atrás mira la primera vez
         "solape_dias": 2,           # repaso de seguridad sobre la última búsqueda

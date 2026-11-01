@@ -9,6 +9,11 @@ provincias: ["46", "03", "12"]
 # true: solo licitaciones que hablan de paellas. Nada de catering ni comidas genéricas.
 solo_paellas: true
 
+# Búsqueda automática (programar.bat): cada día en estos meses y una vez por semana el resto.
+temporada:
+  meses: [2, 3, 4, 5, 6, 7, 8, 9]   # febrero a septiembre
+  dias_fuera_de_temporada: 7
+
 buscar:
   dias_primera_vez: 30      # la primera búsqueda mira 30 días atrás
   aviso_dias_plazo: 3       # avisa de las ME INTERESA que vencen en 3 días o menos

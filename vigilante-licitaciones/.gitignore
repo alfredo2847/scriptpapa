@@ -7,3 +7,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 fichas/
+LISTA_LICITACIONES.html

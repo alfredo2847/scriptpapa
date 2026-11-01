@@ -22,6 +22,7 @@ import requests  # noqa: E402
 import compradores  # noqa: E402
 import fichas  # noqa: E402
 import licitaciones  # noqa: E402
+import lista  # noqa: E402
 from comun import DATOS, DESCARGAS, PROVINCIAS, VERSION, avisar, cargar_config, configurar_log  # noqa: E402
 from xml.etree.ElementTree import ParseError  # noqa: E402
 
@@ -105,6 +106,26 @@ def crear_fichas(encontradas: dict, existentes: dict, config: dict, ahora: datet
         fila["carpeta"] = str(carpeta)
 
 
+def toca_buscar(ahora: datetime, ultimas: dict, temporada: dict) -> tuple[bool, str]:
+    """En temporada, siempre; fuera de temporada, si hace N días de la última búsqueda."""
+    if ahora.month in temporada["meses"]:
+        return True, "temporada: búsqueda diaria"
+    fechas = [datetime.fromisoformat(v) for v in ultimas.values() if v]
+    if not fechas:
+        return True, "primera búsqueda"
+    dias = (ahora - min(fechas)).days
+    if dias >= temporada["dias_fuera_de_temporada"]:
+        return True, f"fuera de temporada: búsqueda semanal (la última fue hace {dias} días)"
+    proxima = min(fechas) + timedelta(days=temporada["dias_fuera_de_temporada"])
+    return False, f"fuera de temporada: la próxima búsqueda será a partir del {proxima:%d/%m/%Y}"
+
+
+def cmd_lista(args, config, log) -> int:
+    ruta = lista.generar(licitaciones.cargar(), datetime.now())
+    log.info(f"Lista: {ruta}")
+    return 0
+
+
 def cmd_buscar(args, config, log) -> int:
     ahora = datetime.now()
     opciones = config["buscar"]
@@ -112,6 +133,12 @@ def cmd_buscar(args, config, log) -> int:
     ultimas = estado.get("ultima_busqueda") or {}
     if isinstance(ultimas, str):  # formato antiguo: una fecha para todas las fuentes
         ultimas = {"licitaciones": ultimas, "agregadas": ultimas}
+    if args.programada:
+        toca, motivo = toca_buscar(ahora, ultimas, config["temporada"])
+        log.info(f"Búsqueda automática: {motivo}")
+        if not toca:
+            lista.generar(licitaciones.cargar(), ahora)  # refresca días restantes y vencidas
+            return 0
 
     def desde_para(fuente: str) -> datetime:
         if args.dias:
@@ -155,6 +182,10 @@ def cmd_buscar(args, config, log) -> int:
         crear_fichas(encontradas, existentes, config, ahora, None if args.archivo else red, log)
     nuevas = licitaciones.actualizar(existentes, encontradas, ahora)
     licitaciones.guardar(existentes, ahora)
+    aviso = f"No se pudo consultar: {', '.join(fallidas)}. Se volverá a intentar en la próxima búsqueda." \
+        if fallidas else ""
+    ruta_lista = lista.generar(existentes, ahora, aviso)
+    log.info(f"Lista actualizada: {ruta_lista}")
     if not args.archivo:
         DATOS.mkdir(parents=True, exist_ok=True)
         RUTA_ESTADO.write_text(json.dumps({"ultima_busqueda": ultimas}), encoding="utf-8")
@@ -178,11 +209,12 @@ def cmd_buscar(args, config, log) -> int:
     if fallidas:
         mensajes.append(f"no se pudo leer: {', '.join(fallidas)} (mira el log)")
     if nuevas:
-        lista = "; ".join(f"{f['municipio'] or f['organo']} ({f['encaje']})" for f in nuevas[:5])
-        mensajes.append(f"{len(nuevas)} nueva(s): {lista}")
+        resumen = "; ".join(f"{f['municipio'] or f['organo']} ({f['encaje']})" for f in nuevas[:5])
+        mensajes.append(f"{len(nuevas)} nueva(s): {resumen}")
     if pronto:
         mensajes.append(f"{len(pronto)} marcada(s) ME INTERESA vence(n) pronto")
     if mensajes:
+        mensajes.append("Abre 'Licitaciones de paellas' en el escritorio")
         avisar("Licitaciones de paellas", ". ".join(mensajes))
     return 1 if fallidas and not contratos else 0
 
@@ -200,6 +232,10 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--dias", type=float, help="mirar N días atrás en vez de desde la última búsqueda")
     s.add_argument("--archivo", nargs="+", help="usar ATOM/ZIP ya descargados (pruebas)")
     s.add_argument("--sin-fichas", action="store_true", help="no crear carpetas ni descargar pliegos")
+    s.add_argument("--programada", action="store_true",
+                   help="la usa la tarea de Windows: diaria en temporada, semanal fuera de ella")
+
+    sub.add_parser("lista", help="rehacer LISTA_LICITACIONES.html desde la hoja (sin buscar)")
 
     args = parser.parse_args(argv)
     config = cargar_config()
@@ -209,6 +245,8 @@ def main(argv: list[str] | None = None) -> int:
     log.info(f"Vigilante versión {VERSION}. Provincias: {provincias}. Filtro: {filtro}.")
     if args.comando == "compradores":
         return cmd_compradores(args, config, log)
+    if args.comando == "lista":
+        return cmd_lista(args, config, log)
     return cmd_buscar(args, config, log)
 
 

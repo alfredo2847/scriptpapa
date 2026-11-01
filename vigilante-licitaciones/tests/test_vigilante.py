@@ -192,6 +192,8 @@ def test_comando_buscar_con_archivo(tmp_path, monkeypatch):
     monkeypatch.setattr(vigilante, "avisar", lambda *a: None)
     import fichas
     monkeypatch.setattr(fichas, "CARPETA", tmp_path / "fichas")
+    import lista
+    monkeypatch.setattr(lista, "RUTA", tmp_path / "LISTA.html")
     archivo = tmp_path / "licitaciones.atom"
     archivo.write_bytes(feed(entrada("1", "Paellas fiestas", plazo="2099-01-01")))
     assert vigilante.main(["buscar", "--archivo", str(archivo)]) == 0
@@ -213,6 +215,8 @@ def test_una_fuente_rota_no_para_la_busqueda(tmp_path, monkeypatch):
     monkeypatch.setattr(vigilante, "RUTA_ESTADO", tmp_path / "estado.json")
     monkeypatch.setattr(vigilante, "DATOS", tmp_path)
     monkeypatch.setattr(fichas, "CARPETA", tmp_path / "fichas")
+    import lista
+    monkeypatch.setattr(lista, "RUTA", tmp_path / "LISTA.html")
     avisos = []
     monkeypatch.setattr(vigilante, "avisar", lambda t, m: avisos.append(m))
 
@@ -255,3 +259,34 @@ def test_retira_lo_que_no_es_de_paellas(tmp_path, config):
     assert len(retiradas) == 1 and set(existentes) == {"a", "c", "d"}
     assert (fichas_dir / "_no_paella" / "catering").is_dir()
     assert not (fichas_dir / "catering").exists()
+
+
+def test_temporada():
+    from vigilante import toca_buscar
+    temporada = {"meses": [2, 3, 4, 5, 6, 7, 8, 9], "dias_fuera_de_temporada": 7}
+    hace3 = {"licitaciones": "2026-10-29T08:40:00", "agregadas": "2026-10-29T08:40:00"}
+    hace8 = {"licitaciones": "2026-10-24T08:40:00", "agregadas": "2026-10-24T08:40:00"}
+    assert toca_buscar(datetime(2026, 6, 1, 8, 40), hace3, temporada)[0]          # junio: diario
+    assert not toca_buscar(datetime(2026, 11, 1, 8, 40), hace3, temporada)[0]     # noviembre: espera
+    assert toca_buscar(datetime(2026, 11, 1, 8, 40), hace8, temporada)[0]         # pasó una semana
+    assert toca_buscar(datetime(2026, 11, 1, 8, 40), {}, temporada)[0]            # primera vez
+
+
+def test_lista_html(tmp_path):
+    import lista
+    filas = {
+        "a": {"municipio": "Sueca", "objeto": "Paellas gigantes <fiestas>", "importe": 12000,
+              "plazo": datetime(2026, 11, 3, 14), "valoracion": 90, "seguimiento": "ME INTERESA",
+              "enlace": "https://x/1", "carpeta": str(tmp_path / "Sueca")},
+        "b": {"municipio": "Alzira", "objeto": "Concurso de paellas", "plazo": datetime(2026, 10, 20),
+              "valoracion": 60, "seguimiento": "NUEVA"},
+        "c": {"municipio": "Gandia", "objeto": "Paellada", "seguimiento": "DESCARTADA"},
+    }
+    ruta = lista.generar(filas, AHORA, ruta=tmp_path / "l.html")
+    html = ruta.read_text(encoding="utf-8")
+    assert "Paellas gigantes &lt;fiestas&gt;" in html and "12.000 €" in html
+    assert "Abiertas <span class='cuenta'>(1)</span>" in html
+    assert "Vencidas" in html and "Alzira" in html and "Gandia" not in html
+    assert "urgente" in html and "Abrir carpeta" in html
+    vacia = lista.generar({}, AHORA, ruta=tmp_path / "v.html").read_text(encoding="utf-8")
+    assert "no hay licitaciones de paellas abiertas" in vacia
