@@ -51,7 +51,8 @@ def _cifra(valor: str, texto: str) -> str:
     return f"<div class='cifra'><div class='valor'>{valor}</div><div class='texto'>{texto}</div></div>"
 
 
-def generar(analisis: dict, ahora: datetime, ruta: Path | None = None, avisos: list[str] | None = None) -> Path:
+def generar(analisis: dict, ahora: datetime, ruta: Path | None = None, avisos: list[str] | None = None,
+            titulo: str = "Historial de contratos menores de paellas") -> Path:
     ruta = ruta or RUTA
     g = analisis["general"]
     municipios = analisis["municipios"]
@@ -132,7 +133,7 @@ def generar(analisis: dict, ahora: datetime, ruta: Path | None = None, avisos: l
     html = f"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Análisis de compradores de paellas</title>
+<title>{escape(titulo)}</title>
 <style>
 body {{ font-family: Segoe UI, Arial, sans-serif; margin: 24px auto; max-width: 1200px; padding: 0 16px;
        color: #222; background: #fff; line-height: 1.4; }}
@@ -152,7 +153,7 @@ th {{ background: #f2f6fb; font-weight: 600; }} .num {{ text-align: right; white
 .aviso {{ background: #fff3cd; padding: 8px 12px; border-radius: 6px; }}
 .vacio {{ color: #666; font-style: italic; }} ul {{ padding-left: 20px; }}
 </style></head><body>
-<h1>Ayuntamientos que contratan paellas</h1>
+<h1>{escape(titulo)}</h1>
 <div class="sub">Comunitat Valenciana · contratos adjudicados entre el {periodo} · informe del {ahora:%d/%m/%Y}</div>
 {avisos_html}
 <div class="cifras">{cifras}</div>

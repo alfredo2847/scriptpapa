@@ -97,7 +97,9 @@ DEFAULTS: dict = {
     },
     "compradores": {
         "anos": 3,
-        "fuentes": ["menores", "licitaciones", "agregadas"],
+        # Por defecto, solo el historial de contratos menores (adjudicaciones directas).
+        # Con --fuentes menores,licitaciones,agregadas se incluyen también las licitaciones adjudicadas.
+        "fuentes": ["menores"],
         "meses_antelacion": 2,      # enviar la propuesta N meses antes del mes en que contratan
     },
     "red": {"timeout_seg": 120, "reintentos": 3},

@@ -305,3 +305,21 @@ def test_lista_html(tmp_path):
     assert "urgente" in html and "Abrir carpeta" in html
     vacia = lista.generar({}, AHORA, ruta=tmp_path / "v.html").read_text(encoding="utf-8")
     assert "no hay licitaciones de paellas abiertas" in vacia
+
+
+def test_historial_menores_va_a_su_carpeta(tmp_path, monkeypatch):
+    import vigilante
+    monkeypatch.setattr(vigilante, "CARPETA_MENORES", tmp_path / "historial_contratos_menores")
+    monkeypatch.setattr(vigilante, "CARPETA_TODOS", tmp_path / "historial_contratos_todos")
+    archivo = tmp_path / "contratosMenoresPerfilesContratantes_2025.zip"
+    with zipfile.ZipFile(archivo, "w") as z:
+        z.writestr("a.atom", feed(entrada("1", "Paellas gigantes fiestas", estado="RES",
+                                          adjudicatario="Pepe SL", adjudicado="8000", fecha_adj="2025-07-10")))
+    assert vigilante.main(["compradores", "--archivo", str(archivo), "--no-abrir"]) == 0
+    carpeta = tmp_path / "historial_contratos_menores"
+    assert (carpeta / "ANALISIS_CONTRATOS_MENORES.html").exists()
+    assert (carpeta / "contratos_menores.xlsx").exists()
+    assert "Historial de contratos menores de paellas" in \
+        (carpeta / "ANALISIS_CONTRATOS_MENORES.html").read_text(encoding="utf-8")
+    assert not (tmp_path / "historial_contratos_todos").exists()
+    assert vigilante.salida_historial(["menores", "licitaciones"])[0].parent.name == "historial_contratos_todos"

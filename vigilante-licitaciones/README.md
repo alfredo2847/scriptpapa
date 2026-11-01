@@ -17,13 +17,28 @@ puede funcionar mientras el bot está enviando.
 
 | Comando | Qué saca | Hoja |
 |---|---|---|
-| `compradores` | Histórico de contratos (sobre todo contratos menores): qué ayuntamientos contratan paellas, en qué mes, por cuánto y a qué empresa | `datos/compradores.xlsx` |
+| `compradores` | Historial de contratos menores de paellas: qué ayuntamientos las contratan, en qué mes, por cuánto y a qué empresa | `historial_contratos_menores/` |
 | `buscar` | Licitaciones abiertas, con plazo, que encajan | `datos/licitaciones.xlsx` |
 
-### Análisis de compradores (`compradores`)
+### Historial de contratos menores (`compradores`)
 
-Solo cuentan los contratos que hablan de paellas. Al terminar se abre
-`ANALISIS_COMPRADORES.html` en el navegador, con:
+Es un análisis aparte de las licitaciones abiertas: mira los contratos menores
+(adjudicados directamente, sin licitación) de los últimos años para saber a qué
+ayuntamientos escribir y cuándo. Solo cuentan los que hablan de paellas.
+
+Todo queda en su propia carpeta:
+
+```
+historial_contratos_menores\
+    ANALISIS_CONTRATOS_MENORES.html   el informe (se abre solo al terminar)
+    contratos_menores.xlsx            lo mismo en Excel, una pestaña por apartado
+```
+
+Con `--fuentes menores,licitaciones,agregadas` se analizan también las
+licitaciones ya adjudicadas, y el resultado va a otra carpeta,
+`historial_contratos_todos\`, para que no se mezcle.
+
+El informe contiene:
 
 1. **Resumen en cifras:** contratos, ayuntamientos, clientes recurrentes,
    importe típico, rango de importes.
@@ -39,8 +54,7 @@ Solo cuentan los contratos que hablan de paellas. Al terminar se abre
 7. **Todos los contratos**, con enlace a la Plataforma.
 8. **Limitaciones de los datos.**
 
-Lo mismo está en `datos/compradores.xlsx`, una pestaña por apartado, para
-filtrar u ordenar. La columna `dir3_ayto` es el mismo código que usa la hoja
+La columna `dir3_ayto` es el mismo código que usa la hoja
 del bot de registro; si quieres usar algo en el bot, cópialo tú.
 
 ### `licitaciones.xlsx`
@@ -149,8 +163,9 @@ sobrescribe `config.yaml`, `datos/` ni `logs/`.
 
 ```bat
 .venv\Scripts\activate
-python src/vigilante.py compradores            :: últimos 3 años (la primera vez tarda: descarga varios GB)
-python src/vigilante.py compradores --anos 1 --fuentes menores   :: prueba rápida
+python src/vigilante.py compradores            :: historial de contratos menores, últimos 3 años
+python src/vigilante.py compradores --anos 1   :: prueba rápida con el último año
+python src/vigilante.py compradores --fuentes menores,licitaciones,agregadas   :: también licitaciones adjudicadas
 python src/vigilante.py buscar                 :: licitaciones nuevas desde la última búsqueda
 python src/vigilante.py buscar --dias 60       :: mirar 60 días atrás (y crear las carpetas que falten)
 python src/vigilante.py buscar --sin-fichas    :: solo la hoja, sin carpetas ni pliegos

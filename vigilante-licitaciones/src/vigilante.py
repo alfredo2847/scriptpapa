@@ -42,18 +42,36 @@ def _fuente_de_archivo(ruta: Path) -> str:
     return "licitaciones"
 
 
+CARPETA_MENORES = Path(__file__).resolve().parent.parent / "historial_contratos_menores"
+CARPETA_TODOS = Path(__file__).resolve().parent.parent / "historial_contratos_todos"
+
+
+def salida_historial(fuentes: list[str]) -> tuple[Path, Path, str]:
+    """Carpeta, informe y título según lo analizado: solo contratos menores, o todo."""
+    if set(fuentes) == {"menores"}:
+        return (CARPETA_MENORES / "ANALISIS_CONTRATOS_MENORES.html",
+                CARPETA_MENORES / "contratos_menores.xlsx",
+                "Historial de contratos menores de paellas")
+    return (CARPETA_TODOS / "ANALISIS_CONTRATOS.html",
+            CARPETA_TODOS / "contratos.xlsx",
+            "Historial de contratos de paellas (contratos menores y licitaciones adjudicadas)")
+
+
 def cmd_compradores(args, config, log) -> int:
     anos = args.anos or config["compradores"]["anos"]
     provincias = ", ".join(PROVINCIAS[p]["nombre"] for p in config["provincias"])
-    log.info(f"Histórico de contratos de los últimos {anos} años en {provincias}")
 
     archivos: list[tuple[Path, str]] = []
     fallidas: list[str] = []
     if args.archivo:
         archivos = [(Path(a), _fuente_de_archivo(Path(a))) for a in args.archivo]
+        fuentes = sorted({f for _, f in archivos})
     else:
-        red = Red(config["red"]["timeout_seg"], config["red"]["reintentos"])
         fuentes = args.fuentes.split(",") if args.fuentes else config["compradores"]["fuentes"]
+    ruta_informe, ruta_hoja, titulo = salida_historial(fuentes)
+    log.info(f"{titulo}: últimos {anos} años en {provincias}")
+    if not args.archivo:
+        red = Red(config["red"]["timeout_seg"], config["red"]["reintentos"])
         for fuente in fuentes:
             for url in urls_historico(config["fuentes"][fuente], anos):
                 destino = DESCARGAS / fuente / url.rsplit("/", 1)[-1]
@@ -74,12 +92,13 @@ def cmd_compradores(args, config, log) -> int:
                 log.warning(f"  No se pudo leer {ruta.name}: {e}")
 
     hallazgos = compradores.filtrar(todos(), config)
-    res = compradores.guardar(hallazgos, config["compradores"]["meses_antelacion"])
+    ruta_informe.parent.mkdir(parents=True, exist_ok=True)
+    res = compradores.guardar(hallazgos, config["compradores"]["meses_antelacion"], ruta_hoja)
     avisos = []
     if fallidas:
         avisos.append(f"{len(fallidas)} archivos no se pudieron descargar, así que puede faltar parte del "
                       "histórico. Se reintentan en la próxima ejecución.")
-    informe = informe_compradores.generar(res["analisis"], datetime.now(), avisos=avisos)
+    informe = informe_compradores.generar(res["analisis"], datetime.now(), ruta_informe, avisos, titulo)
     log.info(f"\nListo: {res['contratos']} contratos de paellas en {res['municipios']} ayuntamientos "
              f"({res['prioridad_1']} clientes recurrentes).")
     for f in res["analisis"]["municipios"][:15]:
@@ -87,7 +106,7 @@ def cmd_compradores(args, config, log) -> int:
         log.info(f"  [{f['prioridad']}] {f['municipio']} ({f['provincia'] or '?'}): {f['contratos']} contrato(s), "
                  f"{importe} de media, suele contratar en {f['mes_habitual'] or '?'} "
                  f"-> enviar propuesta en {f['enviar_propuesta_en'] or '?'}")
-    log.info(f"\nInforme: {informe}\nHoja:    {compradores.RUTA}")
+    log.info(f"\nCarpeta: {ruta_informe.parent}\nInforme: {informe.name}\nHoja:    {ruta_hoja.name}")
     if fallidas:
         log.warning(f"\n{len(fallidas)} archivos no se pudieron descargar (puede que aún no existan). "
                     "Si faltan años enteros, descárgalos a mano y usa --archivo <ruta>.")
@@ -243,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
 
     s = sub.add_parser("compradores", help="histórico de contratos: quién contrata paellas, cuándo y a quién")
     s.add_argument("--anos", type=int, help="años completos hacia atrás (por defecto, config.yaml)")
-    s.add_argument("--fuentes", help="menores,licitaciones,agregadas (por defecto, todas)")
+    s.add_argument("--fuentes", help="por defecto solo menores; menores,licitaciones,agregadas para incluir licitaciones adjudicadas")
     s.add_argument("--archivo", nargs="+", help="usar ZIP/ATOM ya descargados en vez de descargarlos")
     s.add_argument("--no-abrir", action="store_true", help="no abrir el informe al terminar")
 
